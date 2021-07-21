@@ -1,0 +1,135 @@
+---
+listener:
+  # https://fedora-messaging.readthedocs.io/en/stable/quick-start.html
+  broker:
+    #
+    # Take server's default value: channelMax
+    # Default value for heartbeat doesn't work.
+    # https://pagure.io/fedora-infra/ansible/blob/main/f/roles/rabbitmq_cluster/templates/rabbitmq.config#_29
+    #
+    url: 'amqps://ignore:@rabbitmq.fedoraproject.org/%2Fpublic_pubsub?heartbeat=300'
+    keypath: 'assets/fedora-key.pem'
+    certpath: 'assets/fedora-cert.pem'
+    cacertpath: 'assets/cacert.pem'
+    #
+    #  Use exchange type: "topic"
+    #  Fedora admins defined 2 exchanges with names: 'amq.topic' and 'zmq.topic'
+    #  'amq.topic' comes from Predeclared Exchanges:
+    #  https://qpid.apache.org/releases/qpid-broker-j-7.0.6/book/Java-Broker-Concepts-Exchanges.html#Java-Broker-Concepts-Exchanges-Predeclared
+    #
+    exchange_name: 'amq.topic'
+    #
+    # Limit the number of unacknowledged messages
+    # https://www.rabbitmq.com/consumer-prefetch.html
+    #
+    prefetch: 200
+  # where to dump received messages
+  # can be relative path to process.cwd()
+  # the directroy will be created
+  file_queue_path: 'messages-queue'
+  # * (star) can substitute for exactly one word.
+  # # (hash) can substitute for zero or more words.
+  topics:
+    set:
+      # https://fedora-fedmsg.readthedocs.io/en/latest/topics.html#buildsys
+      - 'org.centos.prod.buildsys.tag'
+      # - 'org.fedoraproject.prod.copr.#'
+      # - 'org.fedoraproject.prod.buildsys.tag'
+      # - 'org.centos.prod.ci.koji-build.test.*'
+loader:
+  db:
+    db_name: 'ci-messages'
+    db_collection_artifacts: 'artifacts'
+    db_collection_invalid: 'validation-errors'
+    # http://mongodb.github.io/node-mongodb-native/3.5/api/MongoClient.html
+    db_url: ~
+    collections:
+      artifacts:
+        name: 'artifacts'
+        # db.collection.createIndex(
+        #     { orderDate: 1, category: 1 },
+        #     { name: "date_category_fr", collation: { locale: "fr", strength: 2 } }
+        # )
+        indexes:
+          - keys:
+              orderDate: 1
+              category: 1
+            options:
+              name: 'date_category_fr_v3'
+              collation:
+                locale: 'fr'
+                strength: 2
+      invalid:
+        name: 'validation-errors'
+        indexes:
+          - keys:
+              expire_at: 1
+            options:
+              name: 'expire_at_v1'
+              expireAfterSeconds: 0
+          - keys:
+              broker_topic: 1
+            options:
+              name: 'broker_topic_v1'
+      no_handler:
+        name: 'no-handler'
+        indexes:
+          - keys:
+              expire_at: 1
+            options:
+              name: 'expire_at_v1'
+              expireAfterSeconds: 0
+          - keys:
+              broker_topic: 1
+            options:
+              name: 'broker_topic_v1'
+
+  file_queue_path: 'messages-queue'
+
+koji_fp:
+  host: 'koji.fedoraproject.org'
+  port: 443
+  path: '/kojihub'
+  headers:
+    useragent: 'kai-js'
+
+koji_cs:
+  host: 'kojihub.stream.centos.org'
+  port: 443
+  path: '/kojihub'
+  headers:
+    useragent: 'kai-js'
+
+env_to_config_map:
+  loader:
+    db:
+      db_url: LOADER_DB_URL
+      db_name: LOADER_DB_NAME
+      db_collection_artifacts: LOADER_DB_COLLECTION_ARTIFACTS
+      db_collection_invalid: LOADER_DB_COLLECTION_INVALID
+    file_queue_path: LOADER_FILE_QUEUE_PATH
+  listener:
+    broker:
+      url: LISTENER_BROKER_URL
+      keypath: LISTENER_BROKER_KEYPATH
+      certpath: LISTENER_BROKER_CERTPATH
+      cacertpath: LISTENER_BROKER_CACERTPATH
+      exchange_name: LISTENER_BROKER_EXCHANGE_NAME
+      prefetch: LISTENER_BROKER_PREFETCH
+    topics:
+      set:
+        # use new line to separate
+        - LISTENER_TOPICS_SET
+    file_queue_path: LISTENER_FILE_QUEUE_PATH
+  koji_fp:
+    host: KOJI_FP_HOST
+    port: KOJI_FP_PORT
+    path: KOJI_FP_PATH
+    headers:
+      useragent: KOJI_FP_USERAGENT
+  koji_cs:
+    host: KOJI_CS_HOST
+    port: KOJI_CS_PORT
+    path: KOJI_CS_PATH
+    headers:
+      useragent: KOJI_CS_USERAGENT
