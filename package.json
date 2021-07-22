@@ -6,9 +6,9 @@
   "main": "index.js",
   "scripts": {
     "dev:listener": "nodemon --config dev-listener.json",
-    "start:listener": "source ./env.sh && node build/listener.js",
+    "start:listener": "source ./env.sh && node build/listener.js | ./node_modules/.bin/pino-pretty",
     "dev:loader": "nodemon --config dev-loader.json",
-    "start:loader": "source ./env.sh && node build/loader.js",
+    "start:loader": "source ./env.sh && node build/loader.js | ./node_modules/.bin/pino-pretty",
     "build": "rimraf ./build && tsc"
   },
   "author": "Andrei Stepanov",
