@@ -1,7 +1,27 @@
 ---
 listener:
+  broker_umb:
+    # client_name must match CN from certificate Subject
+    client_name: ~
+    # if subscription_id is empty it will be auto-generated and have uuid form
+    subscription_id: ~
+    prefetch: 200
+    connection:
+      # maps to ConnectionOptions 'rhea-promise' package https://github.com/amqp/rhea
+      transport: 'tls'
+      host: ~
+      port: 5671
+      ca: ~
+      key: ~
+      cert: ~
+    failover:
+      # entries in form of: "host:port"
+      set: []
+    topics:
+      set:
+        - 'VirtualTopic.eng.brew.task.closed'
   # https://fedora-messaging.readthedocs.io/en/stable/quick-start.html
-  broker:
+  broker_rabbitmq:
     #
     # Take server's default value: channelMax
     # Default value for heartbeat doesn't work.
@@ -23,19 +43,19 @@ listener:
     # https://www.rabbitmq.com/consumer-prefetch.html
     #
     prefetch: 200
+    # * (star) can substitute for exactly one word.
+    # # (hash) can substitute for zero or more words.
+    topics:
+      set:
+        # https://fedora-fedmsg.readthedocs.io/en/latest/topics.html#buildsys
+        - 'org.centos.prod.buildsys.tag'
+        # - 'org.fedoraproject.prod.copr.#'
+        # - 'org.fedoraproject.prod.buildsys.tag'
+        # - 'org.centos.prod.ci.koji-build.test.*'
   # where to dump received messages
   # can be relative path to process.cwd()
   # the directroy will be created
   file_queue_path: 'messages-queue'
-  # * (star) can substitute for exactly one word.
-  # # (hash) can substitute for zero or more words.
-  topics:
-    set:
-      # https://fedora-fedmsg.readthedocs.io/en/latest/topics.html#buildsys
-      - 'org.centos.prod.buildsys.tag'
-      # - 'org.fedoraproject.prod.copr.#'
-      # - 'org.fedoraproject.prod.buildsys.tag'
-      # - 'org.centos.prod.ci.koji-build.test.*'
 loader:
   db:
     db_name: 'ci-messages'
@@ -109,17 +129,36 @@ env_to_config_map:
       db_collection_invalid: LOADER_DB_COLLECTION_INVALID
     file_queue_path: LOADER_FILE_QUEUE_PATH
   listener:
-    broker:
-      url: LISTENER_BROKER_URL
-      keypath: LISTENER_BROKER_KEYPATH
-      certpath: LISTENER_BROKER_CERTPATH
-      cacertpath: LISTENER_BROKER_CACERTPATH
-      exchange_name: LISTENER_BROKER_EXCHANGE_NAME
-      prefetch: LISTENER_BROKER_PREFETCH
-    topics:
-      set:
-        # use new line to separate
-        - LISTENER_TOPICS_SET
+    broker_umb:
+      client_name: LISTENER_BROKER_UMB_CLIENT_NAME
+      subscription_id: LISTENER_BROKER_UMB_SUBSCRIPTION_ID
+      prefetch: LISTENER_BROKER_UMB_PREFETCH
+      connection:
+        host: LISTENER_BROKER_UMB_CONNECTION_HOST
+        port: LISTENER_BROKER_UMB_CONNECTION_PORT
+        ca: LISTENER_BROKER_UMB_CONNECTION_CA
+        key: LISTENER_BROKER_UMB_CONNECTION_KEY
+        cert: LISTENER_BROKER_UMB_CONNECTION_CERT
+        transport: LISTENER_BROKER_UMB_TRANSPORT
+      failover:
+        set:
+          # use new line to separate
+          - LISTENER_BROKER_UMB_FAILOVER_SET
+      topics:
+        set:
+          # use new line to separate
+          - LISTENER_BROKER_UMB_TOPICS_SET
+    broker_rabbitmq:
+      url: LISTENER_BROKER_RABBITMQ_URL
+      keypath: LISTENER_BROKER_RABBITMQ_KEYPATH
+      certpath: LISTENER_BROKER_RABBITMQ_CERTPATH
+      cacertpath: LISTENER_BROKER_RABBITMQ_CACERTPATH
+      exchange_name: LISTENER_BROKER_RABBITMQ_EXCHANGE_NAME
+      prefetch: LISTENER_BROKER_RABBITMQ_PREFETCH
+      topics:
+        set:
+          # use new line to separate
+          - LISTENER_BROKER_RABBITMQ_TOPICS_SET
     file_queue_path: LISTENER_FILE_QUEUE_PATH
   koji_fp:
     host: KOJI_FP_HOST

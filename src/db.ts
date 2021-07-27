@@ -43,7 +43,8 @@ import {
   UnknownBrokerTopicModel,
 } from './dbInterface';
 import { get_handler, NoAssociatedHandlerError } from './dbMsgHandlers';
-import { assert_is_valid } from './validation';
+import { assert_is_valid, SchemaName } from './validation';
+import { FileQueueMessage } from './fqueue';
 
 const log = debug('kaijs:db');
 const cfg = getcfg();
@@ -217,17 +218,20 @@ export class ValidationErrors extends DBCollection {
     super('invalid', collection_name, url, db_name, options);
   }
 
-  async add_to_db(broker_msg: any, err: Joi.ValidationError): Promise<void> {
+  async add_to_db(
+    fq_msg: FileQueueMessage,
+    err: Joi.ValidationError
+  ): Promise<void> {
     const expire_at = new Date();
     var keep_days = 15;
     expire_at.setDate(expire_at.getDate() + keep_days);
     const document: ValidationErrorsModel = {
       timestamp: Date.now(),
       time: new Date().toString(),
-      broker_msg,
+      broker_msg: fq_msg.body,
       errmsg: err.details,
       expire_at,
-      broker_topic: broker_msg.address,
+      broker_topic: fq_msg.broker_topic,
     };
     try {
       await this.collection?.insertOne(document);
@@ -252,7 +256,7 @@ export class UnknownBrokerTopics extends DBCollection {
     super('no_handler', collection_name, url, db_name, options);
   }
   async add_to_db(
-    broker_msg: any,
+    fq_msg: FileQueueMessage,
     err: NoAssociatedHandlerError
   ): Promise<void> {
     const expire_at = new Date();
@@ -261,8 +265,8 @@ export class UnknownBrokerTopics extends DBCollection {
     const document: UnknownBrokerTopicModel = {
       timestamp: Date.now(),
       time: new Date().toString(),
-      broker_msg,
-      broker_topic: err.routingKey,
+      broker_msg: fq_msg.body,
+      broker_topic: err.broker_topic,
       expire_at,
     };
     try {
@@ -382,19 +386,19 @@ export class Artifacts extends DBCollection {
    * @param artifact - holds data, necessary add to DB.
    * @returns updated document
    */
-  async add(message: any): Promise<ArtifactModel> {
-    const { address: routingKey, message_id } = message;
+  async add(message: FileQueueMessage): Promise<ArtifactModel> {
+    const { broker_topic, broker_msg_id: message_id } = message;
     if (_.isUndefined(this.collection)) {
       throw new Error('Connection is not initialized');
     }
-    const handler = get_handler(routingKey);
-    this.log("'%s', %s", routingKey, message_id);
+    const handler = get_handler(broker_topic);
+    this.log("'%s', %s", broker_topic, message_id);
     if (_.isUndefined(handler)) {
-      const metric_name = 'handler-' + routingKey;
+      const metric_name = 'handler-' + broker_topic;
       metrics_up_broker(metric_name, 'nack');
-      log(' [E] No handler for topic: %s', routingKey);
-      const errmsg = `broker msg-id: ${message_id}: does not have associated handler for topic '${routingKey}'.`;
-      throw new NoAssociatedHandlerError(errmsg, routingKey);
+      log(' [E] No handler for topic: %s', broker_topic);
+      const errmsg = `broker msg-id: ${message_id}: does not have associated handler for topic '${broker_topic}'.`;
+      throw new NoAssociatedHandlerError(errmsg, broker_topic);
     }
     /** Retry update artifact entry in db */
     let retries_left = 30;
@@ -486,12 +490,12 @@ export class Artifacts extends DBCollection {
     );
   }
 
-  async add_to_db(message: any): Promise<void> {
-    const { address: routingKey, message_id } = message;
+  async add_to_db(message: FileQueueMessage): Promise<void> {
+    const { broker_topic, broker_msg_id } = message;
     /**
      * Verify for correctness of input message with associated schema.
      */
-    assert_is_valid(message.body, routingKey);
+    assert_is_valid(message.body, broker_topic as SchemaName);
     /**
      * Invoke associated handler for the message
      */
@@ -502,9 +506,9 @@ export class Artifacts extends DBCollection {
       await this.add(message);
     } catch (err) {
       this.fail(
-        'Cannot update DB for message_id: %s and routingKey: %s',
-        message_id,
-        routingKey
+        'Cannot update DB for message-id: %s and broker-topic: %s',
+        broker_msg_id,
+        broker_topic
       );
       throw err;
     }

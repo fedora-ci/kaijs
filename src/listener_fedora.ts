@@ -26,7 +26,7 @@ import cron from 'node-cron';
 import { v4 as uuidv4 } from 'uuid';
 import amqp, { credentials } from 'amqplib';
 const { isFatalError } = require('amqplib/lib/connection');
-import { fqueue as fq } from './fqueue';
+import { fqueue as fq, FileQueueMessage, FileQueueEntry } from './fqueue';
 import { getcfg, mkDirParents } from './cfg';
 /** Wire-in pino and debug togather. */
 require('./pino_logger');
@@ -34,8 +34,9 @@ require('./pino_logger');
 const listener_name = 'kaijs-listener';
 const log = debug('kaijs:listener');
 const cfg = getcfg();
-const broker_cfg = cfg.listener.broker;
-const topics_cfg = cfg.listener.topics.set;
+const broker_cfg = cfg.listener.broker_rabbitmq;
+const topics_cfg = cfg.listener.broker_rabbitmq.topics.set;
+log('Active config: %s, %O', '\n', cfg.listener.broker_rabbitmq);
 const file_queue_path_cfg = cfg.listener.file_queue_path;
 /** absolute path to present dump dir */
 var file_queue_path: string;
@@ -82,41 +83,44 @@ const process_msg = (
     return;
   }
   /** routingKey == topic */
-  const { routingKey } = msg.fields;
-  const { messageId, headers } = msg.properties;
+  const { routingKey: broker_topic } = msg.fields;
+  const { messageId: broker_msg_id, headers } = msg.properties;
+  log(' [x] %s, %s', broker_topic, broker_msg_id);
+  const unix_time = Math.floor(new Date().getTime() / 1000);
+  /** Generate disctinct file-queue id. It is not related to messageID from broker. */
+  const fqueue_id = `${unix_time}-${broker_msg_id}`;
   const content_str = msg.content.toString();
-  log(" [x] '%s', %s", routingKey, messageId);
   try {
     var content_obj = JSON.parse(content_str);
-  } catch {
-    console.warn(`${messageId}: cannot decode body, skipping this message.`);
+  } catch (error) {
+    log(
+      ' [W] Cannot decode body, skipping message: %s, %s, %O',
+      broker_msg_id,
+      error,
+      content_str
+    );
+    channel.ack(msg);
     return;
   }
-  const prefix = new Date().getFullYear();
-  const unix_time = Math.floor(new Date().getTime() / 1000);
-  const content_hash = crypto
-    .createHash('sha256')
-    .update(content_str)
-    .digest('hex');
-  /** Generate disctinct id. It is not related to messageID from broker. */
-  const id = `${unix_time}-${content_hash}`;
-  /** Follow legacy format. Need to review and dump in the same format as datagrepper shows. */
-  /** https://datagrepper.engineering.redhat.com/id?id=ID:messaging-devops-broker01.web.prod.ext.phx2.redhat.com-43450-1611085597805-11:2638924:0:0:1&is_raw=true&size=extra-large */
-  const payload_obj = {
-    message: {
-      message_id: messageId,
-      source: listener_name,
-      received_at: unix_time,
-      address: routingKey,
-      headers,
-      body: content_obj,
-    },
-    id,
+  const payload_obj: FileQueueMessage = {
+    body: content_obj,
+    broker_msg_id,
+    broker_topic: broker_topic,
+    fq_msg_id: fqueue_id,
+    provider_name: listener_name,
+    provider_timestamp: unix_time,
   };
+  /** 'sent-at': '2021-07-30T13:10:14+00:00' */
+  let provider_timestamp = Math.floor(Date.parse(headers['sent-at']) / 1000);
+  if (!_.isNaN(provider_timestamp)) {
+    payload_obj.header_timestamp = provider_timestamp;
+  }
   fq.push(fqueue, payload_obj).catch((err) =>
     console.warn('Could not store message at file-queue: %s.', err)
   );
-  /** Ack only this message */
+  /**
+   * Acknowledge to the broker that the message is processed on our side, and can be discarded.
+   */
   channel.ack(msg);
 };
 

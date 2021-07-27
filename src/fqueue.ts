@@ -25,6 +25,31 @@
 const graceful_fs = require('graceful-fs');
 const { Queue } = require('file-queue');
 
+export type FileQueueCallback = (cb: (err: Error) => void) => void;
+
+export interface FileQueueEntry {
+  message: FileQueueMessage;
+  commit: FileQueueCallback;
+  rollback: FileQueueCallback;
+}
+
+export interface FileQueueMessage {
+  /** File-queue message id */
+  fq_msg_id: string;
+  /** Msg ID, known in UMB/RabbitMQ broker */
+  broker_msg_id: string;
+  /** UMB/RabbitMQ topic */
+  broker_topic: string;
+  /** Any string, for example: "virtualdb" or "kai-listener-umb" */
+  provider_name: string;
+  /** When provider received message */
+  provider_timestamp: number;
+  /** Timestamp from message header */
+  header_timestamp?: number;
+  /** Payload of message */
+  body: any;
+}
+
 async function make(path: string) {
   return new Promise((resolve, reject) => {
     var queue = new Queue(

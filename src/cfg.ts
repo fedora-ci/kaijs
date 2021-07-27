@@ -24,8 +24,7 @@ import path from 'path';
 import debug from 'debug';
 import yaml from 'js-yaml';
 import assert from 'assert';
-import { error } from 'console';
-import { SrvRecord } from 'dns';
+import { ConnectionOptions } from 'rhea-promise';
 
 const log = debug('kaijs:cfg');
 /** Default config must present */
@@ -70,7 +69,10 @@ const mk_config_from_env: any = _.flow(
               _.partial(_.get, process.env, _, undefined),
               _.cond([
                 [_.isUndefined, _.stubArray],
-                [_.stubTrue, _.partial(_.split, _, '\n')],
+                [
+                  _.stubTrue,
+                  _.flow(_.ary(_.trim, 1), _.partial(_.split, _, '\n')),
+                ],
               ])
             ),
           ]),
@@ -123,9 +125,8 @@ class Config {
     } catch (err) {
       console.warn('Cannot proceed default configuration: ', DEF_CFG_PATH);
       throw err;
-      //throw new Error(`Cannot proceed default configuration: ${DEF_CFG_PATH}`);
     }
-    log('Default config: %s', '\n' + yaml.dump(this.config_default));
+    //log('Default config: %s', '\n' + yaml.dump(this.config_default));
     var override_cfg_path: string;
     for (override_cfg_path of OVERRIDE_CFG_LOOKUP_PATHS) {
       log(override_cfg_path);
@@ -147,7 +148,10 @@ class Config {
     if (this.config_default != null && typeof this.config_default == 'object') {
       const env_to_config_map = _.get(this.config_default, 'env_to_config_map');
       this.config_from_env = mk_config_from_env(env_to_config_map);
-      log('Environment config: %s', '\n' + yaml.dump(this.config_from_env));
+      /**
+       * Uncomment to print Environment config
+       */
+      //log('Environment config: %s', '\n' + yaml.dump(this.config_from_env));
     }
     /** Priority order */
     _.defaultsDeep(
@@ -157,7 +161,10 @@ class Config {
       this.config_default
     );
     _.unset(this.config_active, 'env_to_config_map');
-    log('Active config: %s', '\n' + yaml.dump(this.config_active));
+    /**
+     * Uncomment to print whole active config
+     */
+    // log('Active config: %s', '\n' + yaml.dump(this.config_active));
     /** constructor in javascript returns this object automatically
      * constructor returns the type of the class, the constructor implicitly returns 'this'
      * Even though you technically can't extend a proxy, there is a way to force a class
@@ -179,16 +186,28 @@ export const getcfg = _.once((): Cfg => {
 
 export interface Cfg {
   listener: {
-    broker: {
+    broker_umb: {
+      client_name: string;
+      subscription_id: string;
+      connection: ConnectionOptions;
+      prefetch: number;
+      failover: {
+        set: string[];
+      };
+      topics: {
+        set: string[];
+      };
+    };
+    broker_rabbitmq: {
       url: string;
       keypath: string;
       certpath: string;
       cacertpath: string;
       exchange_name: string;
       prefetch: string;
-    };
-    topics: {
-      set: string[];
+      topics: {
+        set: string[];
+      };
     };
     file_queue_path: string;
   };

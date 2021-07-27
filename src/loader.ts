@@ -22,7 +22,12 @@ import _ from 'lodash';
 import Joi from 'joi';
 import debug from 'debug';
 
-import { fqueue as fq } from './fqueue';
+import {
+  fqueue as fq,
+  FileQueueCallback,
+  FileQueueEntry,
+  FileQueueMessage,
+} from './fqueue';
 import { getcfg, mkDirParents } from './cfg';
 import { NoAssociatedHandlerError } from './dbMsgHandlers';
 import {
@@ -93,18 +98,21 @@ async function start(): Promise<never> {
       _.curry(handle_signal)(fqueue, artifacts, validation_errors)
     );
   }
-  type FileQueueMsg = { message: any; commit: any; rollback: any };
   while (true) {
-    let fqmsg: FileQueueMsg;
+    let fq_msg: FileQueueMessage;
+    let fq_commit: FileQueueCallback, fq_rollback: FileQueueCallback;
     try {
-      fqmsg = await fq.tpop(fqueue);
+      const { message, commit, rollback }: FileQueueEntry = await fq.tpop(
+        fqueue
+      );
+      [fq_msg, fq_commit, fq_rollback] = [message, commit, rollback];
     } catch (err) {
       console.warn('Cannot get msg from file-queue', err);
       process.exit(1);
     }
-    const parse_err = _.attempt(Joi.assert, fqmsg.message, schemas['fq_msg']);
+    const parse_err = _.attempt(Joi.assert, fq_msg, schemas['fq_msg']);
     if (_.isError(parse_err)) {
-      fqmsg.commit((err: Error) => {
+      fq_commit((err: Error) => {
         if (err) throw err;
       });
       metrics_up_fq('nack');
@@ -116,15 +124,14 @@ async function start(): Promise<never> {
       );
       continue;
     }
-    const { message } = fqmsg.message;
     const fq_length = await fq.length(fqueue);
     try {
       log(
         ' [i] Adding message to DB with file-queue message id %O. Remain unprocessed messages: %s',
-        fqmsg.message.id,
+        fq_msg.fq_msg_id,
         fq_length
       );
-      await artifacts.add_to_db(message);
+      await artifacts.add_to_db(fq_msg);
     } catch (err) {
       if (err instanceof Joi.ValidationError) {
         /**
@@ -132,20 +139,20 @@ async function start(): Promise<never> {
          */
         log(
           ' [E] Validation error. Store message to invalid messages db. Message with broker msg-id: %s and file-queue message-id: %s.\nValidation error: %s.\nMessage content:%O',
-          message.message_id,
-          fqmsg.message.id,
+          fq_msg.broker_msg_id,
+          fq_msg.fq_msg_id,
           err.message,
-          message
+          fq_msg
         );
         metrics_up_fq('nack');
         try {
-          await validation_errors.add_to_db(message, err);
+          await validation_errors.add_to_db(fq_msg, err);
         } catch (err) {
           /** The message  */
           console.warn(
             ' [E] Cannot store invalid message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
-            message.message_id,
-            fqmsg.message.id,
+            fq_msg.broker_msg_id,
+            fq_msg.fq_msg_id,
             err.message
           );
         }
@@ -156,33 +163,33 @@ async function start(): Promise<never> {
         log(' [E] %s', err.message);
         log(
           ' [E] Store message to no-handler db. Broker msg-id: %s, file-queue message-id: %s.',
-          message.message_id,
-          fqmsg.message.id
+          fq_msg.broker_msg_id,
+          fq_msg.fq_msg_id
         );
         metrics_up_fq('nack');
         try {
-          await no_handlers.add_to_db(message, err);
+          await no_handlers.add_to_db(fq_msg, err);
         } catch (err) {
           /** The message  */
           console.warn(
             ' [E] Cannot store invalid message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
-            message.message_id,
-            fqmsg.message.id,
+            fq_msg.broker_msg_id,
+            fq_msg.fq_msg_id,
             err.message
           );
         }
       } else {
         console.warn(
           ' [E] Cannot update DB with received message.',
-          `File-queue message id: ${fqmsg.message.id}`,
+          `File-queue message id: ${fq_msg.fq_msg_id}`,
           'Error is:',
           err.message
         );
         log(
           ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
-          message.message_id
+          fq_msg.broker_msg_id
         );
-        fqmsg.rollback((err: Error) => {
+        fq_rollback((err: Error) => {
           if (err) throw err;
         });
         /**
@@ -195,7 +202,7 @@ async function start(): Promise<never> {
     /**
      * Message was processed. Release message from file-queue.
      */
-    fqmsg.commit((err: Error) => {
+    fq_commit((err: Error) => {
       if (err) throw err;
     });
   }

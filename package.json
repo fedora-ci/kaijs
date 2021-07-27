@@ -5,8 +5,10 @@
   "description": "JS implementation of kai",
   "main": "index.js",
   "scripts": {
-    "dev:listener": "nodemon --config dev-listener.json",
-    "start:listener": "source ./env.sh && node build/listener.js | ./node_modules/.bin/pino-pretty",
+    "dev:listener-umb": "nodemon --config dev-listener-umb.json",
+    "start:listener-umb": "source ./env.sh && node build/listener_umb.js | ./node_modules/.bin/pino-pretty",
+    "dev:listener-fedora": "nodemon --config dev-listener-fedora.json",
+    "start:listener-fedora": "source ./env.sh && node build/listener_fedora.js | ./node_modules/.bin/pino-pretty",
     "dev:loader": "nodemon --config dev-loader.json",
     "start:loader": "source ./env.sh && node build/loader.js | ./node_modules/.bin/pino-pretty",
     "build": "rimraf ./build && tsc"
@@ -30,6 +32,8 @@
     "pino": "^6.12.0",
     "pino-pretty": "^4.8.0",
     "retry": "^0.12.0",
+    "rhea": "^2.0.3",
+    "rhea-promise": "^2.1.0",
     "uuid": "^8.3.2",
     "xmlrpc": "^1.3.2"
   },

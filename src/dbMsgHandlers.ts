@@ -37,7 +37,7 @@ import { assert_is_valid } from './validation';
 const log = debug('kaijs:dbMsgHandlers');
 
 export class NoAssociatedHandlerError extends Error {
-  constructor(m: string, public routingKey: string) {
+  constructor(m: string, public broker_topic: string) {
     super(m);
     /**
      * Set the prototype explicitly.

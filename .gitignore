@@ -4,6 +4,9 @@
 /node_modules
 /.pnp
 .pnp.js
+env*
+messages-queue
+.vscode
 
 # testing
 /coverage

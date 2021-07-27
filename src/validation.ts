@@ -30,22 +30,21 @@ const log = debug('kaijs:validation');
  * Schemas define only required set.
  * Schemas do not define all possible fields.
  */
-
-/** File queue message schema */
 const schema_fq_msg = Joi.object({
   /** File-queue message id */
-  id: Joi.string().required(),
-  message: Joi.object({
-    /** Msg ID, known in UMB/RabbitMQ broker */
-    message_id: Joi.string().required(),
-    /** Any string, for example: "virtualdb" or "kai-listener" */
-    source: Joi.string().required(),
-    received_at: Joi.date().timestamp(),
-    /** UMB/RabbitMQ topic */
-    address: Joi.string().required(),
-    headers: Joi.object().required(),
-    body: Joi.object().required(),
-  }),
+  fq_msg_id: Joi.string().required(),
+  /** Msg ID, known in UMB/RabbitMQ broker */
+  broker_msg_id: Joi.string().required(),
+  /** UMB/RabbitMQ topic */
+  broker_topic: Joi.string().required(),
+  /** Any string, for example: "virtualdb" or "kai-listener-umb" */
+  provider_name: Joi.string().required(),
+  /** When provider received message */
+  provider_timestamp: Joi.date().timestamp(),
+  /** Timestamp from message header */
+  header_timestamp: Joi.date().timestamp(),
+  /** Payload of message */
+  body: Joi.object().required(),
 });
 
 /**
@@ -213,7 +212,7 @@ export const schemas = _.merge(
   schemas_broker
 );
 
-type SchemaName = keyof typeof schemas;
+export type SchemaName = keyof typeof schemas;
 
 export function assert_is_valid(obj: any, schema_name: SchemaName) {
   const parse_err = _.attempt(Joi.assert, obj, schemas[schema_name], {
