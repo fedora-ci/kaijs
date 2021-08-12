@@ -91,6 +91,10 @@ var links: Set<Receiver> = new Set();
  * http://docs.oasis-open.org/amqp/core/v1.0/amqp-core-complete-v1.0.pdf
  * https://stackoverflow.com/questions/60395765/what-is-the-difference-between-channels-and-links-in-amqp
  *
+ * UMB policy:
+ *
+ * Message expiration after 24 hours if not consumed - We set a message expiration of 24 hours on messages which have not set their own message expiration time.
+ *
  */
 
 const status = async (

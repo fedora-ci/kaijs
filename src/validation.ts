@@ -152,7 +152,8 @@ const schema_db_artifact = Joi.object({
     component: Joi.string().required(),
     scratch: Joi.boolean().required(),
     gate_tag_name: Joi.string(),
-    source: Joi.string().required(),
+    /** source is not required entry in messages */
+    source: Joi.string(),
     task_id: Joi.number().integer().greater(0).required(),
     build_id: Joi.number().integer().greater(0),
   }),
