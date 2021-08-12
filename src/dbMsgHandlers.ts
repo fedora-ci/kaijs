@@ -32,6 +32,7 @@ import {
   atype_to_hub_map,
   KaiState,
 } from './dbInterface';
+import { FileQueueMessage } from './fqueue';
 import { assert_is_valid } from './validation';
 
 const log = debug('kaijs:dbMsgHandlers');
@@ -87,22 +88,22 @@ function customMerge(presentVaule: any, newValue: any) {
 const handler_buildsys_tag = async (
   type: ArtifactTypes,
   artifacts: Artifacts,
-  msg: any
+  fq_msg: FileQueueMessage
 ): Promise<ArtifactModel> => {
   assert.ok(
     _.has(atype_to_hub_map, type),
     `handler_buildsys_tag() was called for unknown artifact type: ${type}`
   );
   const hub_name: KojiHubName = _.get(atype_to_hub_map, type);
-  const { address: routingKey, message_id, body: tag_msg } = msg;
-  const { build_id } = tag_msg;
+  const { body } = fq_msg;
+  const { build_id } = body;
   var buildInfo;
   try {
     buildInfo = await koji_query(hub_name, 'getBuild', build_id);
   } catch (err) {
     log(
       ' [E] handler_buildsys_tag cannot get buildInfo for build_id: %s',
-      tag_msg.build_id
+      body.build_id
     );
     throw err;
   }
@@ -119,7 +120,7 @@ const handler_buildsys_tag = async (
     task_id,
     build_id,
     nvr: _.get(buildInfo, 'nvr'),
-    issuer: tag_msg.owner,
+    issuer: body.owner,
     source: _.get(buildInfo, 'extra.source.original_url'),
     scratch: false,
     component: _.get(buildInfo, 'name'),
@@ -132,13 +133,13 @@ const handler_buildsys_tag = async (
   return artifact;
 };
 
-const mk_thread_id = (broker_msg: any) => {
-  const { address: routingKey, message_id, body: msg } = broker_msg;
-  var thread_id = _.get(msg, 'pipeline.id');
+const mk_thread_id = (fq_msg: FileQueueMessage) => {
+  const { broker_msg_id, body } = fq_msg;
+  var thread_id = _.get(body, 'pipeline.id');
   if (!_.isEmpty(thread_id) && _.isString(thread_id)) {
     return thread_id;
   }
-  var run_url = _.get(msg, 'run.url');
+  var run_url = _.get(body, 'run.url');
   if (!_.isEmpty(run_url) && _.isString(run_url)) {
     /**
      * if msg_body.pipeline.id is absent generate a dummy thread_id based on
@@ -161,20 +162,22 @@ const mk_thread_id = (broker_msg: any) => {
     thread_id = `dummy-thread-${hash}`;
     return thread_id;
   }
-  new NoThreadIdError(`Cannot make thread-id for broker msg-id: ${message_id}`);
+  new NoThreadIdError(
+    `Cannot make thread-id for broker msg-id: ${broker_msg_id}`
+  );
 };
 
-const mk_state = (broker_msg: any): ArtifactState => {
-  const { address: routingKey, message_id, body: msg } = broker_msg;
-  var thread_id = mk_thread_id(broker_msg);
-  var msg_id = message_id;
-  var version = _.get(msg, 'version');
+const mk_state = (fq_msg: FileQueueMessage): ArtifactState => {
+  const { broker_topic, broker_msg_id, body } = fq_msg;
+  var thread_id = mk_thread_id(fq_msg);
+  var msg_id = broker_msg_id;
+  var version = _.get(body, 'version');
   /**
    * state is used in updating `current-state` entry
    */
-  var state = _.last(_.split(routingKey, '.')) as string;
-  var stage = _.nth(_.split(routingKey, '.'), -2) as string;
-  var timestamp = Date.parse(_.get(msg, 'generated_at'));
+  var state = _.last(_.split(broker_topic, '.')) as string;
+  var stage = _.nth(_.split(broker_topic, '.'), -2) as string;
+  var timestamp = Date.parse(_.get(body, 'generated_at'));
   var origin = {
     creator: 'kaijs-loader',
     reason: 'broker message',
@@ -188,16 +191,16 @@ const mk_state = (broker_msg: any): ArtifactState => {
     timestamp,
     origin,
   };
-  const namespace = _.get(msg, 'test.namespace');
-  const type = _.get(msg, 'test.type');
-  const category = _.get(msg, 'test.category');
+  const namespace = _.get(body, 'test.namespace');
+  const type = _.get(body, 'test.type');
+  const category = _.get(body, 'test.category');
   if (_.size(namespace) && _.size(type) && _.size(category)) {
     const test_case_name = `${namespace}.${type}.${category}`;
     kai_state.test_case_name = test_case_name;
   }
   assert_is_valid(kai_state, 'kai_state');
   var new_state: ArtifactState = {
-    broker_msg_body: msg,
+    broker_msg_body: body,
     kai_state,
   };
   return new_state;
@@ -288,17 +291,17 @@ const actualize_current_states = (db_artifact: ArtifactModel) => {
  */
 const handler_rpm_build_test_common = async (
   artifacts: Artifacts,
-  broker_msg: any
+  fq_msg: FileQueueMessage
 ): Promise<ArtifactModel> => {
-  const { address: routingKey, message_id, body: msg } = broker_msg;
-  const { test, artifact } = msg;
+  const { broker_msg_id, body } = fq_msg;
+  const { artifact } = body;
   const type = artifact.type;
   const task_id = artifact.id;
   var db_artifact;
   try {
     db_artifact = await artifacts.findOrCreate(type, _.toString(task_id));
   } catch (err) {
-    log(' [E] handler_rpm_build_test_complete failed for task_id: %s', task_id);
+    log(' [E] handler_rpm_build_test_common failed for task_id: %s', task_id);
     throw err;
   }
   const rpm_build: ArtifactModel['rpm_build'] = {
@@ -312,14 +315,16 @@ const handler_rpm_build_test_common = async (
   /**
    * Store broker-message to new state
    */
-  const artifact_new_state = mk_state(broker_msg);
+  const artifact_new_state = mk_state(fq_msg);
   const thread_id = artifact_new_state.kai_state.thread_id;
   db_artifact.states = _.defaultTo(db_artifact.states, []);
-  if (!_.includes(_.map(db_artifact.states, 'kai_state.msg_id'), message_id)) {
+  if (
+    !_.includes(_.map(db_artifact.states, 'kai_state.msg_id'), broker_msg_id)
+  ) {
     log(
-      ' [i] handler_rpm_build_test_complete adding new state with thread_id: %s, msg_id: %s',
+      ' [i] handler_rpm_build_test_common adding new state with thread_id: %s, msg_id: %s',
       thread_id,
-      message_id
+      broker_msg_id
     );
     db_artifact.states.push(artifact_new_state);
     /**
@@ -328,9 +333,9 @@ const handler_rpm_build_test_common = async (
     actualize_current_states(db_artifact);
   } else {
     log(
-      ' [i] handler_rpm_build_test_complete already present state with msg_id: %s, msg_id: %s',
+      ' [i] handler_rpm_build_test_common already present state with msg_id: %s, msg_id: %s',
       thread_id,
-      message_id
+      broker_msg_id
     );
   }
   db_artifact.rpm_build = _.mergeWith(
@@ -339,7 +344,7 @@ const handler_rpm_build_test_common = async (
     customMerge
   );
   log(
-    ' [i] handler_rpm_build_test_complete updated doc: %s%o',
+    ' [i] handler_rpm_build_test_common updated doc: %s%o',
     '\n',
     db_artifact
   );

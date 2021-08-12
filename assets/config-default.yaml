@@ -4,6 +4,9 @@ listener:
     # client_name must match CN from certificate Subject
     client_name: ~
     # if subscription_id is empty it will be auto-generated and have uuid form
+    # Do not reuse the same consumer queue prefix for multiple subscriptions- see "Consumer Queues" above
+    # BAD "Consumer.my-umb-client.foo.VirtualTopic.foo" and "Consumer.my-umb-client.foo.VirtualTopic.bar" (both use "Consumer.my-umb-client.foo")
+    # GOOD "Consumer.my-umb-client.foo-consumer.VirtualTopic.foo" and "Consumer.my-umb-client.bar-consumer.VirtualTopic.bar"
     subscription_id: ~
     prefetch: 200
     connection:
@@ -19,6 +22,10 @@ listener:
       set: []
     topics:
       set:
+        # https://activemq.apache.org/wildcards.html
+        # "*" is used to match any name between a path separator ("."). can be used multiple times in a destination name.
+        # ">"is used to recursively match any destination starting from this name.
+        # WARNING: do not use wildcards in your consumer queue before the "VirtualTopic" portion
         - 'VirtualTopic.eng.brew.task.closed'
   # https://fedora-messaging.readthedocs.io/en/stable/quick-start.html
   broker_rabbitmq:
@@ -139,7 +146,7 @@ env_to_config_map:
         ca: LISTENER_BROKER_UMB_CONNECTION_CA
         key: LISTENER_BROKER_UMB_CONNECTION_KEY
         cert: LISTENER_BROKER_UMB_CONNECTION_CERT
-        transport: LISTENER_BROKER_UMB_TRANSPORT
+        transport: LISTENER_BROKER_UMB_CONNECTION_TRANSPORT
       failover:
         set:
           # use new line to separate

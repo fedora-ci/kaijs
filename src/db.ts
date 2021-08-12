@@ -104,7 +104,7 @@ class DBCollection {
       collection_name || cfg.loader.db.collections[this.cfg_entry].name;
     this.db_name = db_name || cfg.loader.db.db_name;
     /** http://mongodb.github.io/node-mongodb-native/3.6/api/MongoClient.html */
-    const opts = options || _.cloneDeep(ValidationErrors.def_options);
+    const opts = options || _.cloneDeep(DBCollection.def_options);
     _.merge(opts, options);
     this.mongo_client = new MongoClient(this.url, opts);
   }
