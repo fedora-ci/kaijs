@@ -299,13 +299,14 @@ export class Artifacts extends DBCollection {
     /** http://mongodb.github.io/node-mongodb-native/3.6/api/Collection.html#findOneAndUpdate */
     var result;
     this.log('Getting mongodb document for type: %s and aid: %s', type, aid);
+    var updated = new Date().toISOString();
     try {
       result = await this.collection.findOneAndUpdate(
         /** query / filter */
         { type, aid },
         /** update */
         {
-          $setOnInsert: { type, aid, _version: 1 },
+          $setOnInsert: { type, aid, _version: 1, _updated: updated },
         },
         /** options */
         {
@@ -442,6 +443,7 @@ export class Artifacts extends DBCollection {
         return artifact;
       }
       const filter = _.pick(db_entry, '_id', '_version');
+      update_set._updated = new Date().toISOString();
       const updateDoc = {
         $inc: { _version: 1 },
         $set: update_set,

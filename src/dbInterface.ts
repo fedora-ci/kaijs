@@ -152,6 +152,8 @@ export interface ArtifactModel {
    * Reqiured. MongoDB provides no out-of-the-box concurrency controls. For supporting concurrency is using a document version number.
    */
   _version: number;
+  /** Updated at: iso 8601 string. */
+  _updated: string;
   /** Required. RHEL-7.7-20190214.n.0 */
   aid: string;
   /** Required. copr-build */

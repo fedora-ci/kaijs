@@ -144,6 +144,7 @@ const schema_db_artifact_state = Joi.object({
  */
 const schema_db_artifact = Joi.object({
   _version: Joi.number().integer().greater(0).required(),
+  _updated: Joi.date().iso(),
   aid: Joi.string().required(),
   type: Joi.string().required(),
   rpm_build: Joi.object({
