@@ -205,18 +205,6 @@ export interface ArtifactModel {
     compose_type: string;
   };
   states: ArtifactState[];
-  current_state: {
-    queued: ArtifactState[];
-    running: ArtifactState[];
-    complete: ArtifactState[];
-    error: ArtifactState[];
-  };
-  current_state_lenghts: {
-    queued: number;
-    running: number;
-    complete: number;
-    error: number;
-  };
   resultsdb_testcase: Array<string>;
 }
 

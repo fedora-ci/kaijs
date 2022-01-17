@@ -175,20 +175,8 @@ const schema_db_artifact = Joi.object({
   productmd_compose: Joi.object({
     compose_type: Joi.string().required(),
   }),
-  current_state_lenghts: Joi.object({
-    queued: Joi.number().integer(),
-    running: Joi.number().integer(),
-    complete: Joi.number().integer(),
-    error: Joi.number().integer(),
-  }),
   resultsdb_testcase: Joi.array().items(Joi.string()),
   states: Joi.array().items(schema_db_artifact_state),
-  current_state: {
-    queued: Joi.array().items(schema_db_artifact_state),
-    running: Joi.array().items(schema_db_artifact_state),
-    complete: Joi.array().items(schema_db_artifact_state),
-    error: Joi.array().items(schema_db_artifact_state),
-  },
   /**
    * if only one of rpm_build, mbs_build, or dist_git_pr is allowed, but none are required
    */

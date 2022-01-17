@@ -207,71 +207,6 @@ const mk_state = (fq_msg: FileQueueMessage): ArtifactState => {
 };
 
 /**
- * Update:
- *  'current-state'
- *  'current-state-lengths'
- *  'resultsdb_testcase'
- * Sorts thread_id by time, uses the most recent entry
- * 'current-state-lengths' - entry is used by dashboard to show quick status of tests
- * otherwise to get this info dashboard need to pull all 'current-state', which can be heavy.
- * 'resultsdb_testcase' - allows dashboard search by testcase name.
- */
-const actualize_current_states = (db_artifact: ArtifactModel) => {
-  /**
-   * thread_id is mandatory field. It present in each state-entry.
-   * Split all states in groups by thread_id
-   */
-  const states_for_same_thread = _.values(
-    _.groupBy(db_artifact.states, 'kai_state.thread_id')
-  );
-  log(' [d] steates for same thread: %O', states_for_same_thread);
-  /**
-   * get the most recent state for each thread
-   */
-  const recent_for_each_thread = _.map(
-    states_for_same_thread,
-    _.flow(
-      _.identity,
-      _.partialRight(_.orderBy, 'kai_state.timestamp', 'desc'),
-      _.first
-    )
-  );
-  log(' [d] recent states for each thread: %O', recent_for_each_thread);
-  const current_state = _.groupBy(
-    _.flatten(recent_for_each_thread),
-    'kai_state.state'
-  );
-  /**
-   * Add known empty states, if do not add - the old will persist
-   */
-  const known_states = [
-    ...new Set(_.map(db_artifact.states, _.property('kai_state.state'))),
-  ];
-  _.remove(known_states, _.isEmpty);
-  const current_state_empty = _.chain(known_states)
-    .keyBy()
-    .mapValues(_.constant([]))
-    .value();
-  _.assign(current_state, _.omit(current_state_empty, _.keys(current_state)));
-  db_artifact.current_state = current_state as ArtifactModel['current_state'];
-  log(' [d] current_state: %O', current_state);
-  const current_state_lenghts = _.mapValues(
-    current_state,
-    _.flow(_.identity, _.size)
-  );
-  db_artifact.current_state_lenghts =
-    current_state_lenghts as ArtifactModel['current_state_lenghts'];
-  const resultsdb_testcase = [
-    ...new Set(
-      _.map(db_artifact.states, _.property('kai_state.test_case_name'))
-    ),
-  ];
-  _.remove(resultsdb_testcase, _.isEmpty);
-  db_artifact.resultsdb_testcase =
-    resultsdb_testcase as ArtifactModel['resultsdb_testcase'];
-};
-
-/**
  * Create a db-entry with schema: schema_db_artifact
  * Extract only required fields.
  * Store unmodified message at 'db_artifact.states[]'.
@@ -330,7 +265,6 @@ const handler_rpm_build_test_common = async (
     /**
      * Update 'current-state' and 'current-state-lengths'
      */
-    actualize_current_states(db_artifact);
   } else {
     log(
       ' [i] handler_rpm_build_test_common already present state with msg_id: %s, msg_id: %s',
