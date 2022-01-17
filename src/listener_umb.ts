@@ -1,7 +1,7 @@
 /*
  * This file is part of kaijs
 
- * Copyright (c) 2021 Andrei Stepanov <astepano@redhat.com>
+ * Copyright (c) 2021, 2022 Andrei Stepanov <astepano@redhat.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,32 +18,18 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import fs from 'fs';
 import _ from 'lodash';
 import assert from 'assert';
 import debug from 'debug';
-import crypto from 'crypto';
 import cron from 'node-cron';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  types,
-  Session,
-  Message,
-  message,
   Receiver,
-  Delivery,
-  AmqpError,
-  TypeError,
   Connection,
-  isAmqpError,
+  SimpleError,
   EventContext,
-  SessionEvents,
-  ProtocolError,
-  ReceiverEvents,
-  ConnectionError,
   ReceiverOptions,
   ConnectionEvents,
-  ConnectionOptions,
 } from 'rhea-promise';
 
 import { fqueue as fq } from './fqueue';
@@ -347,7 +333,7 @@ async function broker_connect(): Promise<Connection> {
   try {
     await conn.open();
   } catch (error) {
-    if (error?.code === 'ECONNREFUSED') {
+    if ((error as SimpleError)?.code === 'ECONNREFUSED') {
       log(' [i] Ignore connection open() error. Retry mechanism follows up.');
     } else {
       throw error;
