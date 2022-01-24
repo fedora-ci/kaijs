@@ -284,7 +284,7 @@ async function broker_connect(): Promise<Connection> {
      * This event is emmited on un-successful connect/re-connect too.
      * Auto-recconnect takes care about this.
      */
-    log(' [W] Connection: is disconnected. %s', context.message);
+    log(' [W] Connection: is disconnected. %O', context.error);
   });
   conn.on(ConnectionEvents.connectionClose, async (context: EventContext) => {
     /**
