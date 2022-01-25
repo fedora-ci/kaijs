@@ -417,34 +417,34 @@ const process_msg = (context: EventContext): void => {
     log(' [x] event with empty message');
     return;
   }
-  const { to: topic, message_id, body } = message;
-  if (topic === undefined || message_id === undefined) {
+  const { to: topic, message_id: broker_msg_id, body } = message;
+  if (topic === undefined || broker_msg_id === undefined) {
     log(' [x] event with incomplete message');
     return;
   }
-  const address = topic.replace(/^topic:\/\//, '');
+  const broker_topic = topic.replace(/^topic:\/\//, '');
   const content_str = convert_body_to_string(body);
   try {
     var content_obj = JSON.parse(content_str);
   } catch (error) {
     log(
       ' [W] Cannot decode body, skipping message: %s, %s, %O',
-      message_id,
+      broker_msg_id,
       error,
       content_str
     );
     delivery?.accept();
     return;
   }
-  log(' [x] %s, %s', address, message_id);
+  log(' [x] %s, %s', broker_topic, broker_msg_id);
   const unix_time = Math.floor(new Date().getTime() / 1000);
   /** Generate disctinct file-queue id. It is not related to messageID from broker. */
-  const fqueue_id = `${unix_time}-${message_id}`;
+  const fq_msg_id = `${unix_time}-${broker_msg_id}`;
   const payload_obj = {
     body: content_obj,
-    address,
-    fqueue_id,
-    message_id,
+    broker_topic,
+    fq_msg_id,
+    broker_msg_id,
     header_timestamp: message?.application_properties?.timestamp,
     provider_name: listener_name,
     provider_timestamp: unix_time,

@@ -1,7 +1,7 @@
 /*
  * This file is part of kaijs
 
- * Copyright (c) 2021 Andrei Stepanov <astepano@redhat.com>
+ * Copyright (c) 2021, 2022 Andrei Stepanov <astepano@redhat.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,7 +18,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import _ from 'lodash';
+import _, { isBuffer } from 'lodash';
 import Joi from 'joi';
 import debug from 'debug';
 
@@ -149,12 +149,16 @@ async function start(): Promise<never> {
           await validation_errors.add_to_db(fq_msg, err);
         } catch (err) {
           /** The message  */
-          console.warn(
-            ' [E] Cannot store invalid message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
-            fq_msg.broker_msg_id,
-            fq_msg.fq_msg_id,
-            err.message
-          );
+          if (_.isError(err)) {
+            console.warn(
+              ' [E] Cannot store invalid message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
+              fq_msg.broker_msg_id,
+              fq_msg.fq_msg_id,
+              err.message
+            );
+          } else {
+            throw err;
+          }
         }
       } else if (err instanceof NoAssociatedHandlerError) {
         /**
@@ -171,20 +175,28 @@ async function start(): Promise<never> {
           await no_handlers.add_to_db(fq_msg, err);
         } catch (err) {
           /** The message  */
-          console.warn(
-            ' [E] Cannot store invalid message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
-            fq_msg.broker_msg_id,
-            fq_msg.fq_msg_id,
-            err.message
-          );
+          if (_.isError(err)) {
+            console.warn(
+              ' [E] Cannot store invalid message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
+              fq_msg.broker_msg_id,
+              fq_msg.fq_msg_id,
+              err.message
+            );
+          } else {
+            throw err;
+          }
         }
       } else {
-        console.warn(
-          ' [E] Cannot update DB with received message.',
-          `File-queue message id: ${fq_msg.fq_msg_id}`,
-          'Error is:',
-          err.message
-        );
+        if (_.isError(err)) {
+          console.warn(
+            ' [E] Cannot update DB with received message.',
+            `File-queue message id: ${fq_msg.fq_msg_id}`,
+            'Error is:',
+            err.message
+          );
+        } else {
+          throw err;
+        }
         log(
           ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
           fq_msg.broker_msg_id
