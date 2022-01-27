@@ -476,12 +476,16 @@ export class Artifacts extends DBCollection {
         /**
          * Can throw an exception when user does not have RO permissions
          */
-        this.fail(
-          'Cannot update db. Retries left: %s:%s%s',
-          retries_left,
-          '\n',
-          err.message
-        );
+        if (_.isError(err)) {
+          this.fail(
+            'Cannot update db. Retries left: %s:%s%s',
+            retries_left,
+            '\n',
+            err.message
+          );
+        } else {
+          throw err;
+        }
       }
       if (modifiedDocument) {
         return modifiedDocument as ArtifactModel;

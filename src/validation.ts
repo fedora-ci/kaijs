@@ -192,6 +192,7 @@ const schemas_db = {
 };
 
 const schemas_koji = {
+  /** Used to verify xmlrpc reply from Koji */
   koji_build_info: schema_koji_build_info,
 };
 
@@ -204,8 +205,33 @@ export const schemas = _.merge(
 
 export type SchemaName = keyof typeof schemas;
 
-export function assert_is_valid(obj: any, schema_name: SchemaName) {
-  const parse_err = _.attempt(Joi.assert, obj, schemas[schema_name], {
+const get_schema_name = (
+  schema_name_pattern: string
+): SchemaName | undefined => {
+  if (_.has(schemas, schema_name_pattern)) {
+    return schema_name_pattern as SchemaName;
+  }
+  const found_key = _.findKey(schemas, (_schema, s_name) => {
+    const is_regex =
+      _.startsWith(s_name, '/') && _.endsWith(s_name, '/') ? true : false;
+    if (is_regex) {
+      const regex = new RegExp(_.trim(s_name, '/'));
+      return regex.test(schema_name_pattern);
+    }
+  });
+  return found_key as SchemaName | undefined;
+};
+
+export function assert_is_valid(obj: any, schema_name: string) {
+  /**
+   * Consider keys from `schemas` as a first parameter to RegExp() if they are enclosed in `//`
+   * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
+   */
+  const key_in_schemas: SchemaName | undefined = get_schema_name(schema_name);
+  if (_.isUndefined(key_in_schemas)) {
+    throw new Error(`Cannot find shema for: ${schema_name}`);
+  }
+  const parse_err = _.attempt(Joi.assert, obj, schemas[key_in_schemas], {
     allowUnknown: true,
   });
   if (_.isError(parse_err)) {

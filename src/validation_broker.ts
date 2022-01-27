@@ -1,7 +1,7 @@
 /*
  * This file is part of kaijs
 
- * Copyright (c) 2021 Andrei Stepanov <astepano@redhat.com>
+ * Copyright (c) 2021, 2022 Andrei Stepanov <astepano@redhat.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -51,6 +51,66 @@ const schema_koji_buildsys_tag = Joi.object({
   version: Joi.string().required(),
   /** pkg-build release */
   release: Joi.string().required(),
+});
+
+/**
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
+ */
+const schema_brew_build_tag_build = Joi.object({
+  build_id: Joi.number().integer(),
+  completion_time: Joi.date().iso(),
+  completion_ts: Joi.date().timestamp(),
+  creation_event_id: Joi.number().integer(),
+  creation_time: Joi.date().iso(),
+  creation_ts: Joi.date().timestamp(),
+  extra: Joi.object({
+    source: Joi.object({
+      original_url: Joi.string().uri(),
+    }),
+  }),
+  id: Joi.number().integer(),
+  name: Joi.string().required(),
+  nvr: Joi.string().required(),
+  owner_id: Joi.number().integer(),
+  owner_name: Joi.string().required(),
+  package_id: Joi.number().integer(),
+  package_name: Joi.string().required(),
+  release: Joi.string().required(),
+  source: Joi.string().uri(),
+  start_time: Joi.date().iso(),
+  start_ts: Joi.date().timestamp(),
+  state: Joi.number().integer(),
+  task_id: Joi.number().integer(),
+  version: Joi.string().required(),
+  volume_id: Joi.number().integer(),
+  volume_name: Joi.string().required(),
+});
+
+const schema_brew_build_tag_tag = Joi.object({
+  arches: Joi.string().required(),
+  extra: Joi.object({}),
+  id: Joi.number().integer(),
+  locked: Joi.boolean().required(),
+  maven_include_all: Joi.boolean().required(),
+  maven_support: Joi.boolean().required(),
+  name: Joi.string().required(),
+  perm: Joi.string().required(),
+  perm_id: Joi.number().integer(),
+});
+
+const schema_brew_build_tag_user = Joi.object({
+  id: Joi.number().integer(),
+  krb_principals: Joi.array().items(Joi.string()),
+  name: Joi.string().required(),
+  status: Joi.number().integer(),
+  usertype: Joi.number().integer(),
+});
+
+const schema_brew_build_tag = Joi.object({
+  build: schema_brew_build_tag_build.required(),
+  force: Joi.boolean().required(),
+  tag: schema_brew_build_tag_tag.required(),
+  user: schema_brew_build_tag_user.required(),
 });
 
 /**
@@ -245,7 +305,71 @@ const schema_rpm_build_test_running = Joi.object({
   version: schema_common.extract('version').required(),
 });
 
-const schemas_centos_stream = {
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-module.test.complete.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
+ */
+const schema_module_test_complete = Joi.object({
+  // XXX: add me
+});
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-module.test.error.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.error&delta=127800
+ */
+const schema_module_test_error = Joi.object({
+  // XXX: add me
+});
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-module.test.qeued.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.queued&delta=127800
+ */
+const schema_module_test_queued = Joi.object({
+  // XXX: add me
+});
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-module.test.running.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.running&delta=127800
+ */
+const schema_module_test_running = Joi.object({
+  // XXX: add me
+});
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.test.complete.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.complete&delta=127800
+ */
+const schema_compose_test_complete = Joi.object({
+  // XXX: add me
+});
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.test.error.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.error&delta=127800
+ */
+const schema_compose_test_error = Joi.object({
+  // XXX: add me
+});
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.test.qeued.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.queued&delta=127800
+ */
+const schema_compose_test_queued = Joi.object({
+  // XXX: add me
+});
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.test.running.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.running&delta=127800
+ */
+const schema_compose_test_running = Joi.object({
+  // XXX: add me
+});
+
+const schemas_cs_broker_messages = {
   /**
    * Centos-stream
    */
@@ -256,7 +380,7 @@ const schemas_centos_stream = {
   'org.centos.prod.buildsys.tag': schema_koji_buildsys_tag,
 };
 
-const schemas_fedora = {
+const schemas_fedora_broker_messages = {
   /**
    * https://apps.fedoraproject.org/datagrepper/raw?topic=org.centos.prod.ci.koji-build.test.complete&delta=127800
    */
@@ -279,6 +403,84 @@ const schemas_fedora = {
   'org.fedoraproject.prod.buildsys.tag': schema_koji_buildsys_tag,
 };
 
-export const schemas_broker = _.merge(schemas_centos_stream, schemas_fedora);
+/**
+ * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
+ */
+
+const schemas_umb_broker_messages = {
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.complete&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.brew-build\\.test\\.complete$/':
+    schema_rpm_build_test_complete,
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.error&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.brew-build\\.test\\.error$/':
+    schema_rpm_build_test_error,
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.queued&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.brew-build\\.test\\.queued$/':
+    schema_rpm_build_test_queued,
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.running&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.brew-build\\.test\\.running$/':
+    schema_rpm_build_test_running,
+
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.redhat-module\\.test\\.complete$/':
+    schema_module_test_complete,
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.error&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.redhat-module\\.test\\.error$/':
+    schema_module_test_error,
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.queued&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.redhat-module\\.test\\.queued$/':
+    schema_module_test_queued,
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.running&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.redhat-module\\.test\\.running$/':
+    schema_module_test_running,
+
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.productmd-compose\\.test\\.complete$/':
+    schema_compose_test_complete,
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.error&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.productmd-compose\\.test\\.error$/':
+    schema_compose_test_error,
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.queued&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.productmd-compose\\.test\\.queued$/':
+    schema_compose_test_queued,
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.running&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.productmd-compose\\.test\\.running$/':
+    schema_compose_test_running,
+
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
+   */
+  'VirtualTopic.eng.brew.build.tag': schema_brew_build_tag,
+};
+
+export const schemas_broker = _.merge(
+  schemas_cs_broker_messages,
+  schemas_umb_broker_messages,
+  schemas_fedora_broker_messages
+);
 
 type SchemaName = keyof typeof schemas_broker;
