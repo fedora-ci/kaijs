@@ -1,7 +1,7 @@
 /*
  * This file is part of kaijs
 
- * Copyright (c) 2021 Andrei Stepanov <astepano@redhat.com>
+ * Copyright (c) 2021,2022 Andrei Stepanov <astepano@redhat.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -85,6 +85,7 @@ function customMerge(presentVaule: any, newValue: any) {
  *  "release": "1.fc33"
  * }
  */
+
 const handler_buildsys_tag = async (
   type: ArtifactTypes,
   artifacts: Artifacts,
@@ -219,12 +220,20 @@ const mk_state = (fq_msg: FileQueueMessage): ArtifactState => {
  * Topics:
  *
  * * org.centos.prod.ci.koji-build.test.complete
+ * * VirtualTopic.eng.ci.brew-build.test.complete
+ * * VirtualTopic.eng.ci.*.brew-build.test.complete
  *
  * Supported versions: https://pagure.io/fedora-ci/messages/releases
  *
  * * 0.2.1
+ *
+ * This is not RPM build. This is Koji/Brew build, which could be also container build.
+ *
+ * https://brewweb.engineering.redhat.com/brew/api
+ * https://koji.fedoraproject.org/koji/api
+ *
  */
-const handler_rpm_build_test_common = async (
+const handler_build_test_common = async (
   artifacts: Artifacts,
   fq_msg: FileQueueMessage
 ): Promise<ArtifactModel> => {
@@ -236,7 +245,7 @@ const handler_rpm_build_test_common = async (
   try {
     db_artifact = await artifacts.findOrCreate(type, _.toString(task_id));
   } catch (err) {
-    log(' [E] handler_rpm_build_test_common failed for task_id: %s', task_id);
+    log(' [E] handler_build_test_common failed for task_id: %s', task_id);
     throw err;
   }
   const rpm_build: ArtifactModel['rpm_build'] = {
@@ -257,7 +266,7 @@ const handler_rpm_build_test_common = async (
     !_.includes(_.map(db_artifact.states, 'kai_state.msg_id'), broker_msg_id)
   ) {
     log(
-      ' [i] handler_rpm_build_test_common adding new state with thread_id: %s, msg_id: %s',
+      ' [i] handler_build_test_common adding new state with thread_id: %s, msg_id: %s',
       thread_id,
       broker_msg_id
     );
@@ -267,7 +276,7 @@ const handler_rpm_build_test_common = async (
      */
   } else {
     log(
-      ' [i] handler_rpm_build_test_common already present state with msg_id: %s, msg_id: %s',
+      ' [i] handler_build_test_common already present state with msg_id: %s, msg_id: %s',
       thread_id,
       broker_msg_id
     );
@@ -277,13 +286,12 @@ const handler_rpm_build_test_common = async (
     rpm_build,
     customMerge
   );
-  log(
-    ' [i] handler_rpm_build_test_common updated doc: %s%o',
-    '\n',
-    db_artifact
-  );
+  log(' [i] handler_build_test_common updated doc: %s%o', '\n', db_artifact);
   return db_artifact;
 };
+
+const handler_brew_build_test_common = handler_build_test_common;
+const handler_koji_build_test_common = handler_build_test_common;
 
 const handler_redhat_module_test_complete = async (
   artifacts: Artifacts,
@@ -333,5 +341,9 @@ handlers.set(
  */
 handlers.set(
   /^org.centos.prod.ci.koji-build.test.(complete|queued|running|error)$/,
-  handler_rpm_build_test_common
+  handler_koji_build_test_common
+);
+handlers.set(
+  /^VirtualTopic\.eng\.ci(\.[\w-]+)?\.brew-build\.test\.(complete|queued|running|error)$/,
+  handler_brew_build_test_common
 );

@@ -411,64 +411,64 @@ const schemas_umb_broker_messages = {
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.complete&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.brew-build\\.test\\.complete$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.brew-build\\.test\\.complete$/':
     schema_rpm_build_test_complete,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.error&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.brew-build\\.test\\.error$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.brew-build\\.test\\.error$/':
     schema_rpm_build_test_error,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.queued&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.brew-build\\.test\\.queued$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.brew-build\\.test\\.queued$/':
     schema_rpm_build_test_queued,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.running&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.brew-build\\.test\\.running$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.brew-build\\.test\\.running$/':
     schema_rpm_build_test_running,
 
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.redhat-module\\.test\\.complete$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.redhat-module\\.test\\.complete$/':
     schema_module_test_complete,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.error&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.redhat-module\\.test\\.error$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.redhat-module\\.test\\.error$/':
     schema_module_test_error,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.queued&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.redhat-module\\.test\\.queued$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.redhat-module\\.test\\.queued$/':
     schema_module_test_queued,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.running&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.redhat-module\\.test\\.running$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.redhat-module\\.test\\.running$/':
     schema_module_test_running,
 
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.productmd-compose\\.test\\.complete$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.test\\.complete$/':
     schema_compose_test_complete,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.error&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.productmd-compose\\.test\\.error$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.test\\.error$/':
     schema_compose_test_error,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.queued&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.productmd-compose\\.test\\.queued$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.test\\.queued$/':
     schema_compose_test_queued,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.running&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.\\w+)?\\.productmd-compose\\.test\\.running$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.test\\.running$/':
     schema_compose_test_running,
 
   /**

@@ -216,7 +216,8 @@ const get_schema_name = (
       _.startsWith(s_name, '/') && _.endsWith(s_name, '/') ? true : false;
     if (is_regex) {
       const regex = new RegExp(_.trim(s_name, '/'));
-      return regex.test(schema_name_pattern);
+      const matched = regex.test(schema_name_pattern);
+      return matched;
     }
   });
   return found_key as SchemaName | undefined;
