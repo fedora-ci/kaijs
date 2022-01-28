@@ -1,7 +1,7 @@
 /*
  * This file is part of kaijs
 
- * Copyright (c) 2021 Andrei Stepanov <astepano@redhat.com>
+ * Copyright (c) 2021, 2022 Andrei Stepanov <astepano@redhat.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,7 +27,10 @@ import { ObjectId } from 'mongodb';
  * * artifact-type : string
  * * artifact-id : string
  *
- * List here all possible artifact-type:
+ * List here all possible artifact-types:
+ *
+ * https://pagure.io/greenwave/blob/master/f/conf/subject_types
+ * https://gitlab.cee.redhat.com/gating/greenwave-playbooks/-/blob/master/roles/greenwave/files/subject_types.yaml
  */
 export type ArtifactTypes =
   /**
@@ -162,7 +165,7 @@ export interface ArtifactModel {
   /**
    * rpm-build
    */
-  rpm_build: {
+  brew_build: {
     nvr: string;
     /** owner of the build */
     issuer: string;
@@ -181,7 +184,8 @@ export interface ArtifactModel {
     task_id: number;
     build_id?: number;
   };
-  mbs_build: {
+  koji_build: ArtifactModel['brew_build'];
+  redhat_module: {
     /** name from nsvc */
     name: string;
     /** stream from nsvc */
@@ -205,7 +209,11 @@ export interface ArtifactModel {
     compose_type: string;
   };
   states: ArtifactState[];
-  resultsdb_testcase: Array<string>;
+  facets: {
+    /** https://www.mongodb.com/blog/post/faceted-search-with-mongodb */
+    resultsdb_testcase?: Array<string>;
+    gate_tag_name?: Array<string>;
+  };
 }
 
 export interface ValidationErrorsModel {

@@ -117,7 +117,7 @@ const handler_buildsys_tag = async (
     log(' [E] handler_buildsys_tag failed for task_id: %s', task_id);
     throw err;
   }
-  const rpm_build: ArtifactModel['rpm_build'] = {
+  const koji_build: ArtifactModel['koji_build'] = {
     task_id,
     build_id,
     nvr: _.get(buildInfo, 'nvr'),
@@ -129,7 +129,11 @@ const handler_buildsys_tag = async (
   /**
    * Mutate artifact.rpm_build, assign any way, if artifact.rpm_build was undefined before
    */
-  artifact.rpm_build = _.mergeWith(artifact.rpm_build, rpm_build, customMerge);
+  artifact.koji_build = _.mergeWith(
+    artifact.koji_build,
+    koji_build,
+    customMerge
+  );
   log(' [i] handler_buildsys_tag updated doc: %s%o', '\n', artifact);
   return artifact;
 };
@@ -233,7 +237,10 @@ const mk_state = (fq_msg: FileQueueMessage): ArtifactState => {
  * https://koji.fedoraproject.org/koji/api
  *
  */
+
+type Tbuild = 'koji_build' | 'brew_build';
 const handler_build_test_common = async (
+  atype: Tbuild,
   artifacts: Artifacts,
   fq_msg: FileQueueMessage
 ): Promise<ArtifactModel> => {
@@ -248,7 +255,7 @@ const handler_build_test_common = async (
     log(' [E] handler_build_test_common failed for task_id: %s', task_id);
     throw err;
   }
-  const rpm_build: ArtifactModel['rpm_build'] = {
+  const build: ArtifactModel[Tbuild] = {
     task_id,
     nvr: _.get(artifact, 'nvr'),
     source: _.get(artifact, 'source'),
@@ -281,17 +288,19 @@ const handler_build_test_common = async (
       broker_msg_id
     );
   }
-  db_artifact.rpm_build = _.mergeWith(
-    db_artifact.rpm_build,
-    rpm_build,
-    customMerge
-  );
+  db_artifact[atype] = _.mergeWith(db_artifact[atype], build, customMerge);
   log(' [i] handler_build_test_common updated doc: %s%o', '\n', db_artifact);
   return db_artifact;
 };
 
-const handler_brew_build_test_common = handler_build_test_common;
-const handler_koji_build_test_common = handler_build_test_common;
+const handler_brew_build_test_common = _.partial(
+  handler_build_test_common,
+  'brew_build'
+);
+const handler_koji_build_test_common = _.partial(
+  handler_build_test_common,
+  'koji_build'
+);
 
 const handler_redhat_module_test_complete = async (
   artifacts: Artifacts,
