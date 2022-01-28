@@ -47,13 +47,6 @@ const schema_fq_msg = Joi.object({
   body: Joi.object().required(),
 });
 
-/**
- * VirtualTopic.eng.brew.build.tag
- * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
- *
- */
-export const schema_broker_brew_build_tag = Joi.object({});
-
 const schema_koji_build_info = Joi.object({
   /** 1740300 */
   build_id: Joi.number().integer().greater(0).required(),

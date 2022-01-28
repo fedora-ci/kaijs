@@ -56,6 +56,7 @@ const schema_koji_buildsys_tag = Joi.object({
 /**
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
  */
+
 const schema_brew_build_tag_build = Joi.object({
   build_id: Joi.number().integer(),
   completion_time: Joi.date().iso(),
@@ -87,7 +88,7 @@ const schema_brew_build_tag_build = Joi.object({
 });
 
 const schema_brew_build_tag_tag = Joi.object({
-  arches: Joi.string().required(),
+  arches: Joi.string().allow('').required(),
   extra: Joi.object({}),
   id: Joi.number().integer(),
   locked: Joi.boolean().required(),
@@ -106,6 +107,11 @@ const schema_brew_build_tag_user = Joi.object({
   usertype: Joi.number().integer(),
 });
 
+/**
+ * VirtualTopic.eng.brew.build.tag
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
+ *
+ */
 const schema_brew_build_tag = Joi.object({
   build: schema_brew_build_tag_build.required(),
   force: Joi.boolean().required(),
