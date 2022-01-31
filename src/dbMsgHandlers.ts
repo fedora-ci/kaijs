@@ -31,6 +31,8 @@ import {
   ArtifactTypes,
   atype_to_hub_map,
   KaiState,
+  PayloadBrewBuild,
+  PayloadKojiBuild,
 } from './dbInterface';
 import { FileQueueMessage } from './fqueue';
 import { assert_is_valid } from './validation';
@@ -117,7 +119,7 @@ const handler_buildsys_tag = async (
     log(' [E] handler_buildsys_tag failed for task_id: %s', task_id);
     throw err;
   }
-  const koji_build: ArtifactModel['koji_build'] = {
+  const koji_build: PayloadKojiBuild = {
     task_id,
     build_id,
     nvr: _.get(buildInfo, 'nvr'),
@@ -129,11 +131,7 @@ const handler_buildsys_tag = async (
   /**
    * Mutate artifact.rpm_build, assign any way, if artifact.rpm_build was undefined before
    */
-  artifact.koji_build = _.mergeWith(
-    artifact.koji_build,
-    koji_build,
-    customMerge
-  );
+  artifact.payload = _.mergeWith(artifact.payload, koji_build, customMerge);
   log(' [i] handler_buildsys_tag updated doc: %s%o', '\n', artifact);
   return artifact;
 };
@@ -238,9 +236,10 @@ const mk_state = (fq_msg: FileQueueMessage): ArtifactState => {
  *
  */
 
-type Tbuild = 'koji_build' | 'brew_build';
+type Tbuild = 'koji-build' | 'brew-build';
+
 const handler_build_test_common = async (
-  atype: Tbuild,
+  _atype: Tbuild,
   artifacts: Artifacts,
   fq_msg: FileQueueMessage
 ): Promise<ArtifactModel> => {
@@ -255,7 +254,7 @@ const handler_build_test_common = async (
     log(' [E] handler_build_test_common failed for task_id: %s', task_id);
     throw err;
   }
-  const build: ArtifactModel[Tbuild] = {
+  const build: PayloadBrewBuild | PayloadKojiBuild = {
     task_id,
     nvr: _.get(artifact, 'nvr'),
     source: _.get(artifact, 'source'),
@@ -288,18 +287,18 @@ const handler_build_test_common = async (
       broker_msg_id
     );
   }
-  db_artifact[atype] = _.mergeWith(db_artifact[atype], build, customMerge);
+  db_artifact.payload = _.mergeWith(db_artifact.payload, build, customMerge);
   log(' [i] handler_build_test_common updated doc: %s%o', '\n', db_artifact);
   return db_artifact;
 };
 
 const handler_brew_build_test_common = _.partial(
   handler_build_test_common,
-  'brew_build'
+  'brew-build'
 );
 const handler_koji_build_test_common = _.partial(
   handler_build_test_common,
-  'koji_build'
+  'koji-build'
 );
 
 const handler_redhat_module_test_complete = async (

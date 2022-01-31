@@ -146,6 +146,54 @@ export interface ArtifactState {
   broker_msg_body: any;
 }
 
+export interface PayloadBrewBuild {
+  /** 0ad-0.0.23b-13.fc33 */
+  nvr: string;
+  /** owner of the build */
+  issuer: string;
+  /** name from nvr */
+  component: string;
+  /** true or false or */
+  scratch: boolean;
+  /**
+   * Gating tag. Example: rhel-8.1.0-gate
+   */
+  gate_tag_name?: string;
+  /**
+   * git://pkgs.devel.redhat.com/rpms/navilu-fonts?#937e7b088e82736a62d0b21cbb0f2e1299400b2e
+   */
+  source: string;
+  task_id: number;
+  build_id?: number;
+}
+
+export interface PayloadKojiBuild
+  extends Omit<PayloadBrewBuild, 'gate_tag_name'> {}
+
+export interface PayloadRedHatModule {
+  /** name from nsvc */
+  name: string;
+  /** stream from nsvc */
+  stream: string;
+  /** version from nsvc */
+  version: string;
+  /** context from nsvc */
+  context: string;
+  /** n:s:v:c */
+  nsvc: string;
+}
+export interface PayloadDistGitPR {
+  uid: string;
+  repository: string;
+  comment_id: string;
+  commit_hash: string;
+  issuer: string;
+}
+export interface PayloadPoductMDCompose {
+  /** nightly */
+  compose_type: string;
+}
+
 export interface ArtifactModel {
   _id: ObjectId;
   /**
@@ -161,58 +209,16 @@ export interface ArtifactModel {
   aid: string;
   /** Required. copr-build */
   type: string;
-  /** 0ad-0.0.23b-13.fc33 */
-  /**
-   * rpm-build
-   */
-  brew_build: {
-    nvr: string;
-    /** owner of the build */
-    issuer: string;
-    /** name from nvr */
-    component: string;
-    /** true or false or */
-    scratch: boolean;
-    /**
-     * Gating tag. Example: rhel-8.1.0-gate
-     */
-    gate_tag_name?: string;
-    /**
-     * git://pkgs.devel.redhat.com/rpms/navilu-fonts?#937e7b088e82736a62d0b21cbb0f2e1299400b2e
-     */
-    source: string;
-    task_id: number;
-    build_id?: number;
-  };
-  koji_build: ArtifactModel['brew_build'];
-  redhat_module: {
-    /** name from nsvc */
-    name: string;
-    /** stream from nsvc */
-    stream: string;
-    /** version from nsvc */
-    version: string;
-    /** context from nsvc */
-    context: string;
-    /** n:s:v:c */
-    nsvc: string;
-  };
-  dist_git_pr: {
-    uid: string;
-    repository: string;
-    comment_id: string;
-    commit_hash: string;
-    issuer: string;
-  };
-  productmd_compose: {
-    /** nightly */
-    compose_type: string;
-  };
+  payload:
+    | PayloadBrewBuild
+    | PayloadKojiBuild
+    | PayloadDistGitPR
+    | PayloadRedHatModule
+    | PayloadPoductMDCompose;
   states: ArtifactState[];
   facets: {
     /** https://www.mongodb.com/blog/post/faceted-search-with-mongodb */
     resultsdb_testcase?: Array<string>;
-    gate_tag_name?: Array<string>;
   };
 }
 
