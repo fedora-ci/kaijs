@@ -206,6 +206,19 @@ class DBCollection {
 }
 
 /**
+ * https://stackoverflow.com/questions/35055731/how-to-deeply-map-object-keys-with-javascript-lodash
+ */
+type TKeyChangerFunction = (value: any, key: string) => string;
+const deepMapKeys = function (obj: any, fn: TKeyChangerFunction) {
+  var x: { [key: string]: any } = {};
+  _.forOwn(obj, function (v, k) {
+    if (_.isPlainObject(v)) v = deepMapKeys(v, fn);
+    x[fn(v, k)] = v;
+  });
+  return x;
+};
+
+/**
  * Operates on mongodb collection
  */
 export class ValidationErrors extends DBCollection {
@@ -233,6 +246,13 @@ export class ValidationErrors extends DBCollection {
       expire_at,
       broker_topic: fq_msg.broker_topic,
     };
+    /**
+     * Mongodb doesn't allow to have dots in keys in document, therefor we replace all dots with `_`:
+     * https://stackoverflow.com/questions/9759972/what-characters-are-not-allowed-in-mongodb-field-names
+     */
+    document.broker_msg = deepMapKeys(document.broker_msg, (_v, k) => {
+      return k.replace(/[$\.]/g, '_');
+    });
     try {
       await this.collection?.insertOne(document);
       this.log('Stored invalid object');
