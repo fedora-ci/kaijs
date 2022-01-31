@@ -156,6 +156,18 @@ async function start(): Promise<never> {
               fq_msg.fq_msg_id,
               err.message
             );
+            /** At this point message stays un-acked at file-queue */
+            log(
+              ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
+              fq_msg.broker_msg_id
+            );
+            fq_rollback((err: Error) => {
+              if (err) throw err;
+            });
+            /**
+             * Exit from programm.
+             */
+            process.exit(1);
           } else {
             throw err;
           }
