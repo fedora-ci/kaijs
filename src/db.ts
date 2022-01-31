@@ -245,6 +245,7 @@ export class ValidationErrors extends DBCollection {
       errmsg: err.details,
       expire_at,
       broker_topic: fq_msg.broker_topic,
+      broker_msg_id: fq_msg.broker_msg_id,
     };
     /**
      * Mongodb doesn't allow to have dots in keys in document, therefor we replace all dots with `_`:

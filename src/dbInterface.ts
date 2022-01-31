@@ -228,6 +228,8 @@ export interface ValidationErrorsModel {
   broker_msg: any;
   /** Broker topic */
   broker_topic: string;
+  /** Broker message id */
+  broker_msg_id: string;
   /** When the mongodb-document will be auto-removed */
   expire_at: Date;
 }
