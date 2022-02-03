@@ -23,8 +23,11 @@
  */
 
 import _ from 'lodash';
+import debug from 'debug';
 const graceful_fs = require('graceful-fs');
 const { Queue } = require('file-queue');
+
+const log = debug('kaijs:fqueue');
 
 export type FileQueueCallback = (cb: (err: Error) => void) => void;
 
@@ -66,7 +69,10 @@ async function make(path: string) {
          * https://github.com/threez/file-queue/blob/6f2bfa60fda2205801ca1c558f4cfc1536e8825c/queue.js#L28
          * function(messages) {} - ignores its argument and checks actual presence of messages.
          */
-        setInterval(_.wrap('new', queue.maildir.emit), 1000 * 60);
+        setInterval(() => {
+          log('[i] polling-tick to check new messages');
+          queue.maildir.emit('new');
+        }, 1000 * 60);
         resolve(queue);
       }
     );
