@@ -107,11 +107,6 @@ async function start(): Promise<never> {
         fqueue
       );
       [fq_msg, fq_commit, fq_rollback] = [message, commit, rollback];
-      log(
-        ' [i] New fq r next fq message: %s, %s',
-        fq_msg.fq_msg_id,
-        fq_msg.broker_msg_id
-      );
     } catch (err) {
       console.warn('Cannot get msg from file-queue', err);
       process.exit(1);
