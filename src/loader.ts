@@ -147,6 +147,10 @@ async function start(): Promise<never> {
         metrics_up_fq('nack');
         try {
           await validation_errors.add_to_db(fq_msg, err);
+          log(
+            ' [i] stored invalid message. Broker msg-id %s.',
+            fq_msg.broker_msg_id
+          );
         } catch (err) {
           /** The message  */
           if (_.isError(err)) {
@@ -226,6 +230,7 @@ async function start(): Promise<never> {
     /**
      * Message was processed. Release message from file-queue.
      */
+    log(' [i] Message was processed. Broker msg-id %s.', fq_msg.broker_msg_id);
     fq_commit((err: Error) => {
       if (err) throw err;
     });
