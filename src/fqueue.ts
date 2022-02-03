@@ -22,6 +22,7 @@
  * Based on https://github.com/threez/file-queue
  */
 
+import _ from 'lodash';
 const graceful_fs = require('graceful-fs');
 const { Queue } = require('file-queue');
 
@@ -59,6 +60,13 @@ async function make(path: string) {
       },
       function (err: Error) {
         if (err) return reject(err);
+        /**
+         * https://github.com/threez/file-queue/issues/8
+         * This code is based on assumption, that
+         * https://github.com/threez/file-queue/blob/6f2bfa60fda2205801ca1c558f4cfc1536e8825c/queue.js#L28
+         * function(messages) {} - ignores its argument and checks actual presence of messages.
+         */
+        setInterval(_.wrap('new', queue.maildir.emit), 1000 * 60);
         resolve(queue);
       }
     );
