@@ -34,7 +34,7 @@ import {
 
 import { fqueue as fq } from './fqueue';
 import { getcfg, mkDirParents } from './cfg';
-import { ConnectionDetails } from 'rhea';
+import { ConnectionDetails, filter } from 'rhea';
 const listener_name = 'kaijs-listener-umb';
 /** Wire-in pino and debug togather. */
 require('./pino_logger');
@@ -132,7 +132,11 @@ const status = async (
  */
 async function create_links(connection: Connection) {
   const topics = _.uniq(topics_cfg);
-  for (const topic of topics) {
+  for (const topic_and_selector of topics) {
+    /**
+     * Selector can follow after topic, separated by `:`
+     */
+    const [topic, selector] = _.split(topic_and_selector, ':', 2);
     /**
      * In UMB:
      * "consumer queues" match a pre-defined pattern (e.g. "Consumer.my-client.1234.VirtualTopic.foo")
@@ -151,11 +155,23 @@ async function create_links(connection: Connection) {
       activemq_address + `?consumer.prefetchSize=${broker_cfg.prefetch}`;
     activemq_address =
       is_exclusive && activemq_address + '&consumer.exclusive=true';
-    log(' [i] subscribe to queue: %s', receiver_address);
+    if (selector) {
+      log(
+        ' [i] subscribe to queue: %s with selector',
+        receiver_address,
+        selector
+      );
+    } else {
+      log(' [i] subscribe to queue: %s', receiver_address);
+    }
     const receiverOptions: ReceiverOptions = {
       credit_window: broker_cfg.prefetch,
       source: {
         address: activemq_address,
+        /**
+         * https://github.com/amqp/rhea/blob/main/examples/selector/recv.js
+         */
+        filter: selector ? filter.selector(selector) : undefined,
       },
       properties: {
         exclusive: true,
