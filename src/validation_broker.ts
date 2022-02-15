@@ -21,6 +21,8 @@
 import _ from 'lodash';
 import Joi from 'joi';
 import debug from 'debug';
+import * as v_1 from './validation_msg_v_1';
+import * as v_0_1 from './validation_msg_v_0.1';
 
 const log = debug('kaijs:validation_msg');
 
@@ -56,7 +58,6 @@ const schema_koji_buildsys_tag = Joi.object({
 /**
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
  */
-
 const schema_brew_build_tag_build = Joi.object({
   build_id: Joi.number().integer(),
   completion_time: Joi.date().iso(),
@@ -110,7 +111,6 @@ const schema_brew_build_tag_user = Joi.object({
 /**
  * VirtualTopic.eng.brew.build.tag
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
- *
  */
 const schema_brew_build_tag = Joi.object({
   build: schema_brew_build_tag_build.required(),
@@ -119,267 +119,201 @@ const schema_brew_build_tag = Joi.object({
   user: schema_brew_build_tag_user.required(),
 });
 
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/contact.yaml
- */
-const schema_contact = Joi.object({
-  name: Joi.string().required(),
-  team: Joi.string().required(),
-  docs: Joi.string().uri().required(),
-  email: Joi.string().email().required(),
-  url: Joi.string().uri(),
-  irc: Joi.string(),
-  slack: Joi.string(),
-  version: Joi.string(),
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/run.yaml
- */
-const schema_run = Joi.object({
-  url: Joi.string().uri().required(),
-  log: Joi.string().required(),
-  log_raw: Joi.string(),
-  log_stream: Joi.string(),
-  rebuild: Joi.string(),
-  trigger_rebuild: Joi.string(),
-  debug: Joi.string(),
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/rpm-build.yaml
- */
-const schema_rpm_build = Joi.object({
-  type: Joi.string().valid('koji-build', 'brew-build').required(),
-  id: Joi.number().integer().greater(0).required(),
-  component: Joi.string().required(),
-  issuer: Joi.string().required(),
-  scratch: Joi.boolean().required(),
-  nvr: Joi.string().required(),
-  baseline: Joi.string(),
-  dependencies: Joi.array().items(Joi.string()),
-  source: Joi.string(),
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/stage.yaml
- */
-const schema_stage = Joi.object({
-  name: Joi.string().required(),
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/pipeline.yaml
- */
-const schema_pipeline = Joi.object({
-  id: Joi.string().required(),
-  name: Joi.string().required(),
-  build: Joi.string(),
-  stage: schema_stage,
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/test-common.yaml
- */
-const schema_test_common = Joi.object({
-  category: Joi.string()
-    .valid(
-      'functional',
-      'integration',
-      'interoperability',
-      'static-analysis',
-      'system',
-      'validation',
-      'performance'
-    )
-    .required(),
-  namespace: Joi.string().required(),
-  type: Joi.string().required(),
-  docs: Joi.string().uri(),
-  label: Joi.array().items(Joi.string()),
-  lifetime: Joi.number().integer().greater(0),
-  progress: Joi.number().integer().min(2).max(100),
-  scenario: Joi.string(),
-  xunit: Joi.string(),
-  xunit_urls: Joi.array().items(Joi.string()),
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/test-complete.yaml
- */
-const schema_test_complete = Joi.object({
-  result: Joi.string()
-    .valid('passed', 'failed', 'info', 'needs_inspection', 'not_applicable')
-    .required(),
-  runtime: Joi.number().integer(),
-  output: Joi.string(),
-  output_urls: Joi.array().items(Joi.string().uri()),
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/notification.yaml
- */
-const schema_notification = Joi.object({
-  recipients: Joi.array().items(Joi.string()),
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/system.yaml
- */
-const schema_system = Joi.object({
-  os: Joi.string().required(),
-  provider: Joi.string().required(),
-  architecture: Joi.string().required(),
-  variant: Joi.string(),
-  label: Joi.string(),
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/common.yaml
- */
-const schema_common = Joi.object({
-  generated_at: Joi.date().iso(),
-  note: Joi.string(),
-  version: Joi.string(),
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/error.yaml
- */
-const schema_error = Joi.object({
-  issue_url: Joi.string().uri(),
-  reason: Joi.string().required(),
-});
-
-/**
- * https://apps.fedoraproject.org/datagrepper/raw?topic=org.centos.prod.ci.koji-build.test.complete&delta=127800
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/brew-build.test.complete.yaml
- */
-const schema_rpm_build_test_complete_v_1 = Joi.object({
-  version_: schema_common
-    .extract('version')
-    .required()
-    .allow(/^0\.2\./, /^1./),
-  contact: schema_contact.required(),
-  run: schema_run.required(),
-  artifact: schema_rpm_build.required(),
-  pipeline: schema_pipeline.required(),
-  test: Joi.any()
-    .concat(schema_test_common)
-    .concat(schema_test_complete)
-    .required(),
-  notification: schema_notification,
-  system: Joi.array().items(schema_system).required(),
-  generated_at: schema_common.extract('generated_at').required(),
-});
-
-const schema_rpm_build_test_complete = Joi.alternatives().try(
-  schema_rpm_build_test_complete_v_1
+const isV_1 = [/^0\.2\./, /^1\./];
+const isV_0_1 = /^0\.1\./;
+const isAny = Joi.any();
+const schemaError = Joi.string().error(
+  new Error('Message has unsupported version')
 );
+const verRef = Joi.ref('.version');
 
 /**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/brew-build.test.error.yaml
+ * brew/koji build
  */
-const schema_rpm_build_test_error = Joi.object({
-  contact: schema_contact.required(),
-  run: schema_run.required(),
-  artifact: schema_rpm_build.required(),
-  pipeline: schema_pipeline.required(),
-  test: schema_test_common.required(),
-  error: schema_error.required(),
-  notification: schema_notification,
-  generated_at: schema_common.extract('generated_at').required(),
-  version: schema_common.extract('version').required(),
+const schema_rpm_build_test_complete = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_rpm_build_test_complete,
+    },
+    {
+      is: isV_0_1,
+      then: v_0_1.schema_rpm_build_test_complete,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
+});
+const schema_rpm_build_test_error = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_rpm_build_test_error,
+    },
+    {
+      is: isV_0_1,
+      then: v_0_1.schema_rpm_build_test_error,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
+});
+const schema_rpm_build_test_queued = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_rpm_build_test_queued,
+    },
+    {
+      is: isV_0_1,
+      then: v_0_1.schema_rpm_build_test_queued,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
+});
+const schema_rpm_build_test_running = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_rpm_build_test_running,
+    },
+    {
+      is: isV_0_1,
+      then: v_0_1.schema_rpm_build_test_running,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
 });
 
 /**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/brew-build.test.queued.yaml
+ * redhat/fedora build
  */
-const schema_rpm_build_test_queued = Joi.object({
-  contact: schema_contact.required(),
-  run: schema_run.required(),
-  artifact: schema_rpm_build.required(),
-  pipeline: schema_pipeline.required(),
-  test: schema_test_common.required(),
-  generated_at: schema_common.extract('generated_at').required(),
-  version: schema_common.extract('version').required(),
+const schema_module_test_complete = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_module_test_complete,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
+});
+
+const schema_module_test_error = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_module_test_error,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
+});
+const schema_module_test_queued = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_module_test_queued,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
+});
+const schema_module_test_running = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_module_test_running,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
 });
 
 /**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/brew-build.test.running.yaml
+ * productmd-compose
  */
-const schema_rpm_build_test_running = Joi.object({
-  contact: schema_contact.required(),
-  run: schema_run.required(),
-  artifact: schema_rpm_build.required(),
-  pipeline: schema_pipeline.required(),
-  test: schema_test_common.required(),
-  generated_at: schema_common.extract('generated_at').required(),
-  version: schema_common.extract('version').required(),
+const schema_compose_test_complete = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_compose_test_complete,
+    },
+    {
+      is: isV_0_1,
+      then: v_0_1.schema_compose_test_complete,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
 });
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-module.test.complete.yaml
- * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
- */
-const schema_module_test_complete = Joi.object({
-  // XXX: add me
+const schema_compose_test_error = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_compose_test_error,
+    },
+    {
+      is: isV_0_1,
+      then: v_0_1.schema_compose_test_error,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
 });
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-module.test.error.yaml
- * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.error&delta=127800
- */
-const schema_module_test_error = Joi.object({
-  // XXX: add me
+const schema_compose_test_queued = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_compose_test_queued,
+    },
+    {
+      is: isV_0_1,
+      then: v_0_1.schema_compose_test_queued,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
 });
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-module.test.qeued.yaml
- * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.queued&delta=127800
- */
-const schema_module_test_queued = Joi.object({
-  // XXX: add me
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-module.test.running.yaml
- * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.running&delta=127800
- */
-const schema_module_test_running = Joi.object({
-  // XXX: add me
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.test.complete.yaml
- * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.complete&delta=127800
- */
-const schema_compose_test_complete = Joi.object({
-  // XXX: add me
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.test.error.yaml
- * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.error&delta=127800
- */
-const schema_compose_test_error = Joi.object({
-  // XXX: add me
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.test.qeued.yaml
- * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.queued&delta=127800
- */
-const schema_compose_test_queued = Joi.object({
-  // XXX: add me
-});
-
-/**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.test.running.yaml
- * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.running&delta=127800
- */
-const schema_compose_test_running = Joi.object({
-  // XXX: add me
+const schema_compose_test_running = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_compose_test_running,
+    },
+    {
+      is: isV_0_1,
+      then: v_0_1.schema_compose_test_running,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
 });
 
 const schemas_cs_broker_messages = {
