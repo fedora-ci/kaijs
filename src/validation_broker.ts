@@ -255,7 +255,11 @@ const schema_error = Joi.object({
  * https://apps.fedoraproject.org/datagrepper/raw?topic=org.centos.prod.ci.koji-build.test.complete&delta=127800
  * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/brew-build.test.complete.yaml
  */
-const schema_rpm_build_test_complete = Joi.object({
+const schema_rpm_build_test_complete_v_1 = Joi.object({
+  version_: schema_common
+    .extract('version')
+    .required()
+    .allow(/^0\.2\./, /^1./),
   contact: schema_contact.required(),
   run: schema_run.required(),
   artifact: schema_rpm_build.required(),
@@ -267,8 +271,11 @@ const schema_rpm_build_test_complete = Joi.object({
   notification: schema_notification,
   system: Joi.array().items(schema_system).required(),
   generated_at: schema_common.extract('generated_at').required(),
-  version: schema_common.extract('version').required(),
 });
+
+const schema_rpm_build_test_complete = Joi.alternatives().try(
+  schema_rpm_build_test_complete_v_1
+);
 
 /**
  * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/brew-build.test.error.yaml
