@@ -41,7 +41,8 @@ require('./pino_logger');
 
 const log = debug('kaijs:loader');
 const cfg = getcfg();
-import { schemas, WrongVersionError } from './validation';
+import { schemas } from './validation';
+import { WrongVersionError } from './validation_broker';
 import { metrics_up_fq, metrics_up_parse } from './metrics';
 /** absolute path to present dump dir */
 var file_queue_path: string;

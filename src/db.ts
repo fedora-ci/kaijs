@@ -43,7 +43,8 @@ import {
   UnknownBrokerTopicModel,
 } from './dbInterface';
 import { get_handler, NoAssociatedHandlerError } from './dbMsgHandlers';
-import { assert_is_valid, SchemaName, WrongVersionError } from './validation';
+import { assert_is_valid, SchemaName } from './validation';
+import { WrongVersionError } from './validation_broker';
 import { FileQueueMessage } from './fqueue';
 
 const log = debug('kaijs:db');

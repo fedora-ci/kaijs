@@ -55,7 +55,7 @@ export class NoThreadIdError extends Error {
     /**
      * Set the prototype explicitly.
      */
-    Object.setPrototypeOf(this, NoAssociatedHandlerError.prototype);
+    Object.setPrototypeOf(this, NoThreadIdError.prototype);
   }
 }
 
