@@ -43,7 +43,7 @@ import {
   UnknownBrokerTopicModel,
 } from './dbInterface';
 import { get_handler, NoAssociatedHandlerError } from './dbMsgHandlers';
-import { assert_is_valid, SchemaName } from './validation';
+import { assert_is_valid, SchemaName, WrongVersionError } from './validation';
 import { FileQueueMessage } from './fqueue';
 
 const log = debug('kaijs:db');
@@ -233,7 +233,7 @@ export class ValidationErrors extends DBCollection {
 
   async add_to_db(
     fq_msg: FileQueueMessage,
-    err: Joi.ValidationError
+    err: Joi.ValidationError | WrongVersionError
   ): Promise<void> {
     const expire_at = new Date();
     var keep_days = 15;
@@ -242,7 +242,7 @@ export class ValidationErrors extends DBCollection {
       timestamp: Date.now(),
       time: new Date().toString(),
       broker_msg: fq_msg.body,
-      errmsg: err.details,
+      errmsg: err instanceof Joi.ValidationError ? err.details : err.message,
       expire_at,
       broker_topic: fq_msg.broker_topic,
       broker_msg_id: fq_msg.broker_msg_id,

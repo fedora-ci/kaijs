@@ -23,6 +23,7 @@ import Joi from 'joi';
 import debug from 'debug';
 import * as v_1 from './validation_msg_v_1';
 import * as v_0_1 from './validation_msg_v_0.1';
+import { WrongVersionError } from './validation';
 
 const log = debug('kaijs:validation_msg');
 
@@ -124,15 +125,10 @@ const isV_0_1 = /^0\.1\./;
 const isAny = Joi.any();
 const schemaError = Joi.string().error(
   /**
-   * We must throw an error with type Joi.ValidationError,
-   * Then mesage will be stored to corresponded DB,
+   * Mesage will be stored to corresponded DB,
    * and loader can continue running.
    */
-  new Joi.ValidationError(
-    'Message has unsupported version',
-    '',
-    'broker message'
-  )
+  new WrongVersionError('Message has unsupported version')
 );
 const verRef = Joi.ref('.version');
 

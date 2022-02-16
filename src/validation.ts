@@ -26,6 +26,16 @@ import { schemas_broker } from './validation_broker';
 
 const log = debug('kaijs:validation');
 
+export class WrongVersionError extends Error {
+  constructor(message: string) {
+    super(message);
+    /**
+     * Set the prototype explicitly.
+     */
+    Object.setPrototypeOf(this, WrongVersionError.prototype);
+  }
+}
+
 /**
  * Schemas define only required set.
  * Schemas do not define all possible fields.

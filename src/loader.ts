@@ -41,7 +41,7 @@ require('./pino_logger');
 
 const log = debug('kaijs:loader');
 const cfg = getcfg();
-import { schemas } from './validation';
+import { schemas, WrongVersionError } from './validation';
 import { metrics_up_fq, metrics_up_parse } from './metrics';
 /** absolute path to present dump dir */
 var file_queue_path: string;
@@ -134,7 +134,10 @@ async function start(): Promise<never> {
       );
       await artifacts.add_to_db(fq_msg);
     } catch (err) {
-      if (err instanceof Joi.ValidationError) {
+      if (
+        err instanceof Joi.ValidationError ||
+        err instanceof WrongVersionError
+      ) {
         /**
          * Store broker-message that cannot be validated to special DB.
          */

@@ -229,7 +229,7 @@ export interface ValidationErrorsModel {
   /** A string representing the time portion of the given date in human readable form in English. */
   time: string;
   /** Error message */
-  errmsg: Joi.ValidationErrorItem[];
+  errmsg: Joi.ValidationErrorItem[] | string;
   /** Message from broker */
   broker_msg: any;
   /** Broker topic */
