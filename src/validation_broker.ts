@@ -123,7 +123,16 @@ const isV_1 = [/^0\.2\./, /^1\./];
 const isV_0_1 = /^0\.1\./;
 const isAny = Joi.any();
 const schemaError = Joi.string().error(
-  new Error('Message has unsupported version')
+  /**
+   * We must throw an error with type Joi.ValidationError,
+   * Then mesage will be stored to corresponded DB,
+   * and loader can continue running.
+   */
+  new Joi.ValidationError(
+    'Message has unsupported version',
+    '',
+    'broker message'
+  )
 );
 const verRef = Joi.ref('.version');
 
