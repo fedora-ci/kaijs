@@ -41,8 +41,8 @@ import {
   ArtifactModel,
   ValidationErrorsModel,
   UnknownBrokerTopicModel,
-} from './dbInterface';
-import { get_handler, NoAssociatedHandlerError } from './dbMsgHandlers';
+} from './db_interface';
+import { getHandler, NoAssociatedHandlerError } from './msg_handlers';
 import { assert_is_valid, SchemaName } from './validation';
 import { WrongVersionError } from './validation_broker';
 import { FileQueueMessage } from './fqueue';
@@ -414,7 +414,7 @@ export class Artifacts extends DBCollection {
     if (_.isUndefined(this.collection)) {
       throw new Error('Connection is not initialized');
     }
-    const handler = get_handler(broker_topic);
+    const handler = getHandler(broker_topic);
     this.log("'%s', %s", broker_topic, message_id);
     if (_.isUndefined(handler)) {
       const metric_name = 'handler-' + broker_topic;

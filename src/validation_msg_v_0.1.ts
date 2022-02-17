@@ -40,7 +40,10 @@ const log = debug('kaijs:validation_msg');
 const schema_contact = Joi.object({
   name: Joi.string().required(),
   team: Joi.string().required(),
-  docs: Joi.string().uri().required(),
+  /**
+   * docs must be required but, a lot of legacy CI systems do not set it
+   */
+  docs: Joi.string().uri(),
   email: Joi.string().email().required(),
   url: Joi.string().uri(),
   irc: Joi.string(),
