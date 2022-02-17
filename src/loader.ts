@@ -29,7 +29,7 @@ import {
   FileQueueMessage,
 } from './fqueue';
 import { getcfg, mkDirParents } from './cfg';
-import { NoAssociatedHandlerError } from './dbMsgHandlers';
+import { NoAssociatedHandlerError } from './msg_handlers';
 import {
   Artifacts,
   ValidationErrors,
