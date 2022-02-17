@@ -85,12 +85,12 @@ const handlerCommon = async (
   const { broker_msg_id, body } = fq_msg;
   const { artifact } = body;
   const type = artifact.type;
-  const task_id = artifact.id;
+  const mbs_id = artifact.id;
   var db_artifact;
   try {
-    db_artifact = await artifacts.findOrCreate(type, _.toString(task_id));
+    db_artifact = await artifacts.findOrCreate(type, _.toString(mbs_id));
   } catch (err) {
-    log(' [E] handlerCommon failed for task_id: %s', task_id);
+    log(' [E] handlerCommon failed for task_id: %s', mbs_id);
     throw err;
   }
   const build: TPayload = mkPayload(body, payloadHandlers);
