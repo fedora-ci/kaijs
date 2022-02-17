@@ -95,7 +95,7 @@ const handler_buildsys_tag = async (
     throw err;
   }
   const koji_build: PayloadKojiBuild = {
-    task_id,
+    id: task_id,
     build_id,
     nvr: _.get(buildInfo, 'nvr'),
     issuer: body.owner,

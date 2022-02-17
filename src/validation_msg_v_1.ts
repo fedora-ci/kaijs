@@ -382,7 +382,7 @@ export const schema_compose_test_queued = Joi.object({
 export const schema_compose_test_running = Joi.object({
   contact: schema_contact.required(),
   run: schema_run.required(),
-  artifact: schema_module_build.required(),
+  artifact: schema_productmd_compose.required(),
   pipeline: schema_pipeline.required(),
   test: schema_test_common.required(),
   generated_at: schema_common.extract('generated_at').required(),

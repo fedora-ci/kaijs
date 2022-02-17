@@ -148,6 +148,8 @@ export interface ArtifactState {
 }
 
 export interface PayloadBrewBuild {
+  /** task id */
+  id: number;
   /** 0ad-0.0.23b-13.fc33 */
   nvr: string;
   /** owner of the build */
@@ -164,12 +166,12 @@ export interface PayloadBrewBuild {
    * git://pkgs.devel.redhat.com/rpms/navilu-fonts?#937e7b088e82736a62d0b21cbb0f2e1299400b2e
    */
   source: string;
-  task_id: number;
   build_id?: number;
 }
 
-export interface PayloadMBSRH {
-  mbs_id: number;
+export interface PayloadRedHatModule {
+  /** msb id */
+  id: number;
   nvr: string;
   issuer: string;
   nsvc: string;
@@ -183,26 +185,17 @@ export interface PayloadMBSRH {
 export interface PayloadKojiBuild
   extends Omit<PayloadBrewBuild, 'gate_tag_name'> {}
 
-export interface PayloadMBSFedora extends Omit<PayloadMBSRH, 'gate_tag_name'> {}
+export interface PayloadFedoraModule
+  extends Omit<PayloadRedHatModule, 'gate_tag_name'> {}
 
 export type TPayload =
   | PayloadKojiBuild
   | PayloadBrewBuild
-  | PayloadMBSRH
-  | PayloadMBSFedora;
+  | PayloadRedHatModule
+  | PayloadFedoraModule
+  | PayloadProductMDCompose
+  | PayloadDistGitPR;
 
-export interface PayloadRedHatModule {
-  /** name from nsvc */
-  name: string;
-  /** stream from nsvc */
-  stream: string;
-  /** version from nsvc */
-  version: string;
-  /** context from nsvc */
-  context: string;
-  /** n:s:v:c */
-  nsvc: string;
-}
 export interface PayloadDistGitPR {
   uid: string;
   repository: string;
@@ -210,9 +203,11 @@ export interface PayloadDistGitPR {
   commit_hash: string;
   issuer: string;
 }
-export interface PayloadPoductMDCompose {
+export interface PayloadProductMDCompose {
+  id: string;
   /** nightly */
   compose_type: string;
+  release_type?: string;
 }
 
 export interface ArtifactModel {
@@ -235,7 +230,8 @@ export interface ArtifactModel {
     | PayloadKojiBuild
     | PayloadDistGitPR
     | PayloadRedHatModule
-    | PayloadPoductMDCompose;
+    | PayloadFedoraModule
+    | PayloadProductMDCompose;
   states: ArtifactState[];
   facets: {
     /** https://www.mongodb.com/blog/post/faceted-search-with-mongodb */

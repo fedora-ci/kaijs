@@ -71,10 +71,10 @@ const log = debug('kaijs:msg_handlers_rpm_build');
 const mkPayloadV1 = (body: any): PayloadBrewBuild | PayloadKojiBuild => {
   const { artifact } = body;
   const pl = {
+    id: _.get(artifact, 'id'),
     nvr: _.get(artifact, 'nvr'),
     source: _.get(artifact, 'source'),
     issuer: _.get(artifact, 'issuer'),
-    task_id: _.get(artifact, 'id'),
     scratch: _.get(artifact, 'scratch'),
     component: _.get(artifact, 'component'),
   };

@@ -37,8 +37,8 @@ import {
   TPayload,
   ArtifactModel,
   ArtifactTypes,
-  PayloadMBSRH,
-  PayloadMBSFedora,
+  PayloadRedHatModule,
+  PayloadFedoraModule,
 } from './db_interface';
 import {
   THandler,
@@ -56,10 +56,10 @@ const log = debug('kaijs:msg_handlers_mbs');
 /**
  * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/module-build.yaml
  */
-const mkPayloadV1 = (body: any): PayloadMBSRH | PayloadMBSFedora => {
+const mkPayloadV1 = (body: any): PayloadRedHatModule | PayloadFedoraModule => {
   const { artifact } = body;
   const pl = {
-    mbs_id: _.get(artifact, 'id'),
+    id: _.get(artifact, 'id'),
     nvr: _.get(artifact, 'nvr'),
     issuer: _.get(artifact, 'issuer'),
     nsvc: _.get(artifact, 'nsvc'),
@@ -90,7 +90,7 @@ const handlerCommon = async (
   try {
     db_artifact = await artifacts.findOrCreate(type, _.toString(mbs_id));
   } catch (err) {
-    log(' [E] handlerCommon failed for task_id: %s', mbs_id);
+    log(' [E] handlerCommon failed for mbs id: %s', mbs_id);
     throw err;
   }
   const build: TPayload = mkPayload(body, payloadHandlers);
