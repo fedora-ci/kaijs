@@ -53,15 +53,16 @@ import {
   ArtifactTypes,
   PayloadBrewBuild,
   PayloadKojiBuild,
+  TPayload,
 } from './db_interface';
 import {
   THandler,
+  mkPayload,
   makeState,
   customMerge,
   TGetPayload,
   THandlersSet,
   TPayloadHandlersSet,
-  getPayloadHandlerByMsgVersion,
 } from './msg_handlers';
 import { FileQueueMessage } from './fqueue';
 
@@ -81,13 +82,10 @@ const mkPayloadV1 = (body: any): PayloadBrewBuild | PayloadKojiBuild => {
 };
 
 const payloadHandlers: TPayloadHandlersSet = new Map<RegExp, TGetPayload>();
+/**
+ * Payload handlers are based on message version
+ */
 payloadHandlers.set(/^.*$/, mkPayloadV1);
-
-const mkPayload = (body: any): PayloadBrewBuild | PayloadKojiBuild => {
-  const getPayload = getPayloadHandlerByMsgVersion(body, payloadHandlers);
-  const payload = getPayload(body);
-  return payload;
-};
 
 const handlerCommon = async (
   _atype: ArtifactTypes,
@@ -105,7 +103,7 @@ const handlerCommon = async (
     log(' [E] handlerCommon failed for task_id: %s', task_id);
     throw err;
   }
-  const build: PayloadBrewBuild | PayloadKojiBuild = mkPayload(body);
+  const build: TPayload = mkPayload(body, payloadHandlers);
   /**
    * Store broker-message to new state
    */

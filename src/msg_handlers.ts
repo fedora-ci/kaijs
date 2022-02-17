@@ -33,6 +33,7 @@ import { FileQueueMessage } from './fqueue';
 import { assert_is_valid } from './validation';
 import { handlers as handlersRPMBuild } from './msg_handlers_rpm_build';
 import { handlers as handlersKojiBrew } from './msg_handlers_koji_brew';
+import { handlers as handlersMBS } from './msg_handlers_mbs';
 
 const log = debug('kaijs:msg_handlers');
 
@@ -82,8 +83,13 @@ export function customMerge(presentVaule: any, newValue: any) {
 
 const mkThreadId = (fq_msg: FileQueueMessage) => {
   const { broker_msg_id, body } = fq_msg;
-  var thread_id = _.get(body, 'pipeline.id');
-  if (!_.isEmpty(thread_id) && _.isString(thread_id)) {
+  const thread_id_v_1 = _.get(body, 'pipeline.id');
+  const thread_id_v_0_1 = _.get(body, 'thread_id');
+  var thread_id = _.find(
+    [thread_id_v_1, thread_id_v_0_1],
+    _.flow(_.identity, _.overEvery([_.negate(_.isEmpty), _.isString]))
+  );
+  if (thread_id) {
     return thread_id;
   }
   var run_url = _.get(body, 'run.url');
@@ -169,11 +175,21 @@ export const getPayloadHandlerByMsgVersion = (
 
 const allKnownHandlers: THandlersSet = new Map<RegExp, THandler>();
 
+export const mkPayload = (
+  body: any,
+  payloadHandlers: TPayloadHandlersSet
+): TPayload => {
+  const getPayload = getPayloadHandlerByMsgVersion(body, payloadHandlers);
+  const payload = getPayload(body);
+  return payload;
+};
+
 /**
  * Populate all allKnownHandlers for each category
  */
 handlersRPMBuild.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersKojiBrew.forEach((value, key) => allKnownHandlers.set(key, value));
+handlersMBS.forEach((value, key) => allKnownHandlers.set(key, value));
 
 log(
   ' [i] known handlers: %O',

@@ -53,6 +53,7 @@ export type ArtifactTypes =
    * MBS builds from https://mbs.engineering.redhat.com/
    */
   | 'redhat-module'
+  | 'fedora-module'
   /**
    * Composes produced by http://odcs.engineering.redhat.com/
    */
@@ -167,10 +168,28 @@ export interface PayloadBrewBuild {
   build_id?: number;
 }
 
+export interface PayloadMBSRH {
+  mbs_id: number;
+  nvr: string;
+  issuer: string;
+  nsvc: string;
+  name: string;
+  stream: string;
+  version: string;
+  context: string;
+  gate_tag_name?: string;
+}
+
 export interface PayloadKojiBuild
   extends Omit<PayloadBrewBuild, 'gate_tag_name'> {}
 
-export type TPayload = PayloadKojiBuild | PayloadBrewBuild;
+export interface PayloadMBSFedora extends Omit<PayloadMBSRH, 'gate_tag_name'> {}
+
+export type TPayload =
+  | PayloadKojiBuild
+  | PayloadBrewBuild
+  | PayloadMBSRH
+  | PayloadMBSFedora;
 
 export interface PayloadRedHatModule {
   /** name from nsvc */
