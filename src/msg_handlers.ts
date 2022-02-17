@@ -34,6 +34,7 @@ import { assert_is_valid } from './validation';
 import { handlers as handlersRPMBuild } from './msg_handlers_rpm_build';
 import { handlers as handlersKojiBrew } from './msg_handlers_koji_brew';
 import { handlers as handlersMBS } from './msg_handlers_mbs';
+import { handlers as handlersCompose } from './msg_handlers_productmd_compose';
 
 const log = debug('kaijs:msg_handlers');
 
@@ -190,6 +191,7 @@ export const mkPayload = (
 handlersRPMBuild.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersKojiBrew.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersMBS.forEach((value, key) => allKnownHandlers.set(key, value));
+handlersCompose.forEach((value, key) => allKnownHandlers.set(key, value));
 
 log(
   ' [i] known handlers: %O',
