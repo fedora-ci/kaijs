@@ -77,6 +77,42 @@ const schema_rpm_build = Joi.object({
 });
 
 /**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/module-build.yaml
+ */
+const schema_module_build = Joi.object({
+  type: Joi.string().valid('fedora-module', 'redhat-module').required(),
+  id: Joi.number().integer().greater(0).required(),
+  issuer: Joi.string().required(),
+  scratch: Joi.boolean(),
+  baseline: Joi.string(),
+  nvr: Joi.string().required(),
+  nsvc: Joi.string().required(),
+  name: Joi.string().required(),
+  stream: Joi.string().required(),
+  version: Joi.string().required(),
+  context: Joi.string().required(),
+});
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.yaml
+ */
+const schema_productmd_compose = Joi.object({
+  type: Joi.string().valid('productmd-compose').required(),
+  id: Joi.string().required(),
+  compose_type: Joi.string().required(),
+  release_type: Joi.string(),
+});
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose-image.yaml
+ */
+const schema_productmd_compose_image = Joi.object({
+  id: Joi.string(),
+  name: Joi.string(),
+  type: Joi.string(),
+});
+
+/**
  * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/stage.yaml
  */
 const schema_stage = Joi.object({
@@ -231,7 +267,18 @@ export const schema_rpm_build_test_running = Joi.object({
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
  */
 export const schema_module_test_complete = Joi.object({
-  // XXX: add me
+  contact: schema_contact.required(),
+  run: schema_run.required(),
+  artifact: schema_module_build.required(),
+  pipeline: schema_pipeline.required(),
+  test: Joi.any()
+    .concat(schema_test_common)
+    .concat(schema_test_complete)
+    .required(),
+  notification: schema_notification,
+  system: Joi.array().items(schema_system).required(),
+  generated_at: schema_common.extract('generated_at').required(),
+  version: schema_common.extract('version').required(),
 });
 
 /**
@@ -239,15 +286,29 @@ export const schema_module_test_complete = Joi.object({
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.error&delta=127800
  */
 export const schema_module_test_error = Joi.object({
-  // XXX: add me
+  contact: schema_contact.required(),
+  run: schema_run.required(),
+  artifact: schema_module_build.required(),
+  pipeline: schema_pipeline.required(),
+  test: schema_test_common.required(),
+  error: schema_error.required(),
+  notification: schema_notification,
+  generated_at: schema_common.extract('generated_at').required(),
+  version: schema_common.extract('version').required(),
 });
 
 /**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-module.test.qeued.yaml
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-module.test.queued.yaml
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.queued&delta=127800
  */
 export const schema_module_test_queued = Joi.object({
-  // XXX: add me
+  contact: schema_contact.required(),
+  run: schema_run.required(),
+  artifact: schema_module_build.required(),
+  pipeline: schema_pipeline.required(),
+  test: schema_test_common.required(),
+  generated_at: schema_common.extract('generated_at').required(),
+  version: schema_common.extract('version').required(),
 });
 
 /**
@@ -255,7 +316,13 @@ export const schema_module_test_queued = Joi.object({
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.running&delta=127800
  */
 export const schema_module_test_running = Joi.object({
-  // XXX: add me
+  contact: schema_contact.required(),
+  run: schema_run.required(),
+  artifact: schema_module_build.required(),
+  pipeline: schema_pipeline.required(),
+  test: schema_test_common.required(),
+  generated_at: schema_common.extract('generated_at').required(),
+  version: schema_common.extract('version').required(),
 });
 
 /**
@@ -263,7 +330,19 @@ export const schema_module_test_running = Joi.object({
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.complete&delta=127800
  */
 export const schema_compose_test_complete = Joi.object({
-  // XXX: add me
+  contact: schema_contact.required(),
+  run: schema_run.required(),
+  artifact: schema_productmd_compose.required(),
+  pipeline: schema_pipeline.required(),
+  test: Joi.any()
+    .concat(schema_test_common)
+    .concat(schema_test_complete)
+    .required(),
+  notification: schema_notification,
+  system: Joi.array().items(schema_system).required(),
+  image: schema_productmd_compose_image,
+  generated_at: schema_common.extract('generated_at').required(),
+  version: schema_common.extract('version').required(),
 });
 
 /**
@@ -271,15 +350,29 @@ export const schema_compose_test_complete = Joi.object({
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.error&delta=127800
  */
 export const schema_compose_test_error = Joi.object({
-  // XXX: add me
+  contact: schema_contact.required(),
+  run: schema_run.required(),
+  artifact: schema_productmd_compose.required(),
+  pipeline: schema_pipeline.required(),
+  test: schema_test_common.required(),
+  error: schema_error.required(),
+  notification: schema_notification,
+  generated_at: schema_common.extract('generated_at').required(),
+  version: schema_common.extract('version').required(),
 });
 
 /**
- * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.test.qeued.yaml
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.test.queued.yaml
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.queued&delta=127800
  */
 export const schema_compose_test_queued = Joi.object({
-  // XXX: add me
+  contact: schema_contact.required(),
+  run: schema_run.required(),
+  artifact: schema_productmd_compose.required(),
+  pipeline: schema_pipeline.required(),
+  test: schema_test_common.required(),
+  generated_at: schema_common.extract('generated_at').required(),
+  version: schema_common.extract('version').required(),
 });
 
 /**
@@ -287,5 +380,11 @@ export const schema_compose_test_queued = Joi.object({
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.test.running&delta=127800
  */
 export const schema_compose_test_running = Joi.object({
-  // XXX: add me
+  contact: schema_contact.required(),
+  run: schema_run.required(),
+  artifact: schema_module_build.required(),
+  pipeline: schema_pipeline.required(),
+  test: schema_test_common.required(),
+  generated_at: schema_common.extract('generated_at').required(),
+  version: schema_common.extract('version').required(),
 });
