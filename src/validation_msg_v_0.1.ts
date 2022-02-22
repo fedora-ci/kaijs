@@ -87,10 +87,7 @@ const schema_system = Joi.object({
   provider: Joi.string().required(),
   architecture: Joi.string().required(),
   variant: Joi.string(),
-  /**
-   * Support legacy messages set to: null
-   */
-  label: Joi.string().allow(null),
+  label: Joi.string(),
 });
 
 /**
@@ -119,7 +116,10 @@ const schema_common = Joi.object({
    * Support legacy messages set to: null
    */
   issue_url: Joi.string().uri().allow(null),
-  label: Joi.string(),
+  /**
+   * Support legacy messages set to: null
+   */
+  label: Joi.string().allow(null),
   lifetime: Joi.number().integer().greater(0),
   namespace: Joi.string(),
   note: Joi.string(),
