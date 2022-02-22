@@ -30,9 +30,20 @@ function mk_update_set(present, newdata) {
     (new_path, old_path) => {
       const new_path_lodash = path_mongodb_to_lodash(new_path);
       const old_path_lodash = path_mongodb_to_lodash(old_path);
+      if (new_path !== old_path) {
+        return false;
+      }
       const new_value = _.get(newdata, new_path_lodash);
       const old_value = _.get(present, old_path_lodash);
       const drop = _.isEqual(new_value, old_value);
+      console.log(
+        '(p: %s, o: %O), (p: %s, n: %O), d: %O',
+        old_path_lodash,
+        old_value,
+        new_path_lodash,
+        new_value,
+        drop
+      );
       return drop;
     }
   );
@@ -46,6 +57,7 @@ function mk_update_set(present, newdata) {
   return _.fromPairs(pairs);
 }
 
+/**
 const o1 = {
   array: ['a1', 'a2'],
   b: {
@@ -73,6 +85,28 @@ const o2 = {
       d2: 3,
       c: ['a'],
     },
+  },
+};
+*/
+const o1 = {
+  _id: '6214f5f136d2f9721f1a75db',
+  aid: 'RHEL-9.1.0-20220222.d.2',
+  type: 'productmd-compose',
+  _updated: '2022-02-22T14:40:49.606Z',
+  payload: { xxx: 1, compose_type: 'devel' },
+  _version: 1,
+};
+
+const o2 = {
+  _id: '6214f5f136d2f9721f1a75db',
+  aid: 'RHEL-9.1.0-20220222.d.2',
+  type: 'productmd-compose',
+  _updated: '2022-02-22T14:40:49.606Z',
+  _version: 1,
+  payload: {
+    compose_id: 'RHEL-9.1.0-20220222.d.2',
+    compose_type: 'development',
+    release_type: undefined,
   },
 };
 

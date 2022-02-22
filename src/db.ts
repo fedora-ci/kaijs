@@ -390,6 +390,10 @@ export class Artifacts extends DBCollection {
        * when to drop path
        */
       (new_path, old_path) => {
+        if (new_path !== old_path) {
+          /* keep path, drop only if old path == new path, and values are different */
+          return false;
+        }
         const new_path_lodash = path_mongodb_to_lodash(new_path);
         const old_path_lodash = path_mongodb_to_lodash(old_path);
         const new_value = _.get(newdata, new_path_lodash);
