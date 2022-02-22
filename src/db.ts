@@ -402,7 +402,9 @@ export class Artifacts extends DBCollection {
       paths_update,
       _.unary(_.over(_.identity, _.partial(_.get, newdata)))
     );
-    return _.fromPairs(pairs);
+    const updateSet = _.fromPairs(pairs);
+    log(' [i] update set: %O', updateSet);
+    return updateSet;
   }
 
   /**

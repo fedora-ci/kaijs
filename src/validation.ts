@@ -22,7 +22,7 @@ import _ from 'lodash';
 import Joi from 'joi';
 import debug from 'debug';
 import { metrics_up_parse } from './metrics';
-import { schemas_broker } from './validation_broker';
+import { schemas_broker, schemas_gate_tag } from './validation_broker';
 
 const log = debug('kaijs:validation');
 
@@ -193,7 +193,8 @@ export const schemas = _.merge(
   schemas_fq,
   schemas_db,
   schemas_koji,
-  schemas_broker
+  schemas_broker,
+  schemas_gate_tag
 );
 
 export type SchemaName = keyof typeof schemas;

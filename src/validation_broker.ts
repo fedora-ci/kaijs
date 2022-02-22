@@ -129,6 +129,21 @@ const schema_brew_build_tag = Joi.object({
   user: schema_brew_build_tag_user.required(),
 });
 
+/**
+ * ^(supp-)?rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|.+-stack)?-gate$
+ */
+const schema_brew_build_tag_is_gate_tag_brew_build = Joi.string().pattern(
+  /^(supp-)?rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|.+-stack)?-gate$/
+);
+
+/**
+ * ^(advanced-virt-[\w\.]+-)?(rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?-modules-gate)$
+ */
+const schema_brew_build_tag_is_gate_tag_redhat_module_build =
+  Joi.string().pattern(
+    /^(advanced-virt-[\w\.]+-)?(rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?-modules-gate)$/
+  );
+
 const isV_1 = [/^0\.2\./, /^1\./];
 const isV_0_1 = /^0\.1\./;
 const isAny = Joi.any();
@@ -443,5 +458,10 @@ export const schemas_broker = _.merge(
   schemas_umb_broker_messages,
   schemas_fedora_broker_messages
 );
+
+export const schemas_gate_tag = {
+  gate_tag_brew_build: schema_brew_build_tag_is_gate_tag_brew_build,
+  gate_tag_redhat_module: schema_brew_build_tag_is_gate_tag_redhat_module_build,
+};
 
 type SchemaName = keyof typeof schemas_broker;

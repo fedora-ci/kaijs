@@ -179,6 +179,8 @@ export interface PayloadRedHatModule {
   stream: string;
   version: string;
   context: string;
+  source?: string;
+  scratch?: boolean;
   gate_tag_name?: string;
 }
 
