@@ -18,17 +18,6 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-/**
- * modularity content do not have schema contend defined in
- * https://pagure.io/fedora-ci/messages/
- * https://issues.redhat.com/browse/OSCI-2280
- *
- * .nsvc: string
- * .stream: string;
- * .version: string;
- * .context: string;
- */
-
 import _ from 'lodash';
 import debug from 'debug';
 import { Artifacts } from './db';
@@ -57,9 +46,9 @@ const log = debug('kaijs:msg_handlers_productmd_compose');
 const mkPayloadV1 = (body: any): PayloadProductMDCompose => {
   const { artifact } = body;
   const pl = {
-    id: _.get(artifact, 'id'),
-    compose_type: _.get(artifact, 'nvr'),
-    release_type: _.get(artifact, 'issuer'),
+    compose_id: _.get(artifact, 'id'),
+    compose_type: _.get(artifact, 'compose_type'),
+    release_type: _.get(artifact, 'release_type'),
   };
   return pl;
 };
@@ -77,16 +66,19 @@ const handlerCommon = async (
 ): Promise<ArtifactModel> => {
   const { broker_msg_id, body } = fq_msg;
   const { artifact } = body;
-  const type = artifact.type;
-  const mbs_id = artifact.id;
+  const artifact_type = artifact.type;
+  const compose_id = artifact.id;
   var db_artifact;
   try {
-    db_artifact = await artifacts.findOrCreate(type, _.toString(mbs_id));
+    db_artifact = await artifacts.findOrCreate(
+      artifact_type,
+      _.toString(compose_id)
+    );
   } catch (err) {
-    log(' [E] handlerCommon failed for task_id: %s', mbs_id);
+    log(' [E] handlerCommon failed for compose_id : %s', compose_id);
     throw err;
   }
-  const build: TPayload = mkPayload(body, payloadHandlers);
+  const newPayload: TPayload = mkPayload(body, payloadHandlers);
   /**
    * Store broker-message to new state
    */
@@ -102,9 +94,6 @@ const handlerCommon = async (
       broker_msg_id
     );
     db_artifact.states.push(artifact_new_state);
-    /**
-     * Update 'current-state' and 'current-state-lengths'
-     */
   } else {
     log(
       ' [i] handlerCommon already present state with msg_id: %s, msg_id: %s',
@@ -112,7 +101,11 @@ const handlerCommon = async (
       broker_msg_id
     );
   }
-  db_artifact.payload = _.mergeWith(db_artifact.payload, build, customMerge);
+  db_artifact.payload = _.mergeWith(
+    db_artifact.payload,
+    newPayload,
+    customMerge
+  );
   log(' [i] handlerCommon updated doc: %s%o', '\n', db_artifact);
   return db_artifact;
 };

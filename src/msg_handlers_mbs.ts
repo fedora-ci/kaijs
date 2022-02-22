@@ -59,7 +59,7 @@ const log = debug('kaijs:msg_handlers_mbs');
 const mkPayloadV1 = (body: any): PayloadRedHatModule | PayloadFedoraModule => {
   const { artifact } = body;
   const pl = {
-    id: _.get(artifact, 'id'),
+    mbs_id: _.get(artifact, 'id'),
     nvr: _.get(artifact, 'nvr'),
     issuer: _.get(artifact, 'issuer'),
     nsvc: _.get(artifact, 'nsvc'),
@@ -109,9 +109,6 @@ const handlerCommon = async (
       broker_msg_id
     );
     db_artifact.states.push(artifact_new_state);
-    /**
-     * Update 'current-state' and 'current-state-lengths'
-     */
   } else {
     log(
       ' [i] handlerCommon already present state with msg_id: %s, msg_id: %s',

@@ -29,24 +29,13 @@ import { koji_query, KojiHubName } from './koji';
 import { Artifacts } from './db';
 import {
   TPayload,
-  KaiState,
   ArtifactModel,
-  ArtifactState,
   ArtifactTypes,
   atype_to_hub_map,
   PayloadKojiBuild,
 } from './db_interface';
-import {
-  THandler,
-  makeState,
-  customMerge,
-  TGetPayload,
-  THandlersSet,
-  TPayloadHandlersSet,
-  getPayloadHandlerByMsgVersion,
-} from './msg_handlers';
+import { THandler, customMerge, THandlersSet } from './msg_handlers';
 import { assert_is_valid } from './validation';
-
 import { FileQueueMessage } from './fqueue';
 
 const log = debug('kaijs:msg_handlers_koji_brew');
@@ -94,8 +83,8 @@ const handler_buildsys_tag = async (
     log(' [E] handler_buildsys_tag failed for task_id: %s', task_id);
     throw err;
   }
-  const koji_build: PayloadKojiBuild = {
-    id: task_id,
+  const newPayload: PayloadKojiBuild = {
+    task_id,
     build_id,
     nvr: _.get(buildInfo, 'nvr'),
     issuer: body.owner,
@@ -106,7 +95,7 @@ const handler_buildsys_tag = async (
   /**
    * Mutate artifact.rpm_build, assign any way, if artifact.rpm_build was undefined before
    */
-  artifact.payload = _.mergeWith(artifact.payload, koji_build, customMerge);
+  artifact.payload = _.mergeWith(artifact.payload, newPayload, customMerge);
   log(' [i] handler_buildsys_tag updated doc: %s%o', '\n', artifact);
   return artifact;
 };

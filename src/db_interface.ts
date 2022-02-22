@@ -149,7 +149,7 @@ export interface ArtifactState {
 
 export interface PayloadBrewBuild {
   /** task id */
-  id: number;
+  task_id: number;
   /** 0ad-0.0.23b-13.fc33 */
   nvr: string;
   /** owner of the build */
@@ -170,8 +170,8 @@ export interface PayloadBrewBuild {
 }
 
 export interface PayloadRedHatModule {
-  /** msb id */
-  id: number;
+  /** mbs id */
+  mbs_id: number;
   nvr: string;
   issuer: string;
   nsvc: string;
@@ -204,7 +204,7 @@ export interface PayloadDistGitPR {
   issuer: string;
 }
 export interface PayloadProductMDCompose {
-  id: string;
+  compose_id: string;
   /** nightly */
   compose_type: string;
   release_type?: string;
