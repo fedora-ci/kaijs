@@ -24,6 +24,7 @@ import debug from 'debug';
 import cron from 'node-cron';
 import { v4 as uuidv4 } from 'uuid';
 import {
+  types,
   Receiver,
   Connection,
   SimpleError,
@@ -34,7 +35,7 @@ import {
 
 import { fqueue as fq } from './fqueue';
 import { getcfg, mkDirParents } from './cfg';
-import { ConnectionDetails, filter } from 'rhea';
+import { ConnectionDetails, filter, Source } from 'rhea';
 const listener_name = 'kaijs-listener-umb';
 /** Wire-in pino and debug togather. */
 require('./pino_logger');
@@ -120,6 +121,34 @@ const status = async (
 };
 
 /**
+ * Based on: https://github.com/amqp/rhea/issues/264
+ * The broker currently accepts selector filter values using the "apache.org:selector-filter:string" filter.
+ * This filter describes a mapping for JMS Header names in to an AMQP equivalent,
+ * so that non-JMS clients do not need to refer to the JMS header names.
+ *
+ * python-qpid-proton creates:  "descriptor": "apache.org:selector-filter:string"
+ *
+ * https://activemq.apache.org/maven/apidocs/src-html/org/apache/activemq/transport/amqp/AmqpSupport.html:
+ *
+ * 037    public static final UnsignedLong JMS_SELECTOR_CODE = UnsignedLong.valueOf(0x0000468C00000004L);
+ * 038    public static final Symbol JMS_SELECTOR_NAME = Symbol.valueOf("apache.org:selector-filter:string");
+ * 039    public static final Object[] JMS_SELECTOR_FILTER_IDS = new Object[] { JMS_SE
+ */
+const mkFilter = (
+  filterClause: string | undefined
+): Source['filter'] | undefined => {
+  if (_.isEmpty(filterClause)) {
+    return undefined;
+  }
+  return {
+    'apache.org:selector-filter:string': types.wrap_described(
+      filterClause,
+      0x468c00000004
+    ),
+  };
+};
+
+/**
  * Called when connection is established.
  * This will create amqp receiver-links.
  * This functions should not be called on reconnect.
@@ -157,13 +186,14 @@ async function create_links(connection: Connection) {
       is_exclusive && activemq_address + '&consumer.exclusive=true';
     if (selector) {
       log(
-        ' [i] subscribe to queue: %s with selector',
+        ' [i] subscribe to queue: %s with selector %s',
         receiver_address,
         selector
       );
     } else {
       log(' [i] subscribe to queue: %s', receiver_address);
     }
+    const filter = mkFilter(selector);
     const receiverOptions: ReceiverOptions = {
       credit_window: broker_cfg.prefetch,
       source: {
@@ -171,7 +201,7 @@ async function create_links(connection: Connection) {
         /**
          * https://github.com/amqp/rhea/blob/main/examples/selector/recv.js
          */
-        filter: selector ? filter.selector(selector) : undefined,
+        filter,
       },
       properties: {
         exclusive: true,
