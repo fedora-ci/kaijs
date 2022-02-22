@@ -87,31 +87,47 @@ const schema_system = Joi.object({
   provider: Joi.string().required(),
   architecture: Joi.string().required(),
   variant: Joi.string(),
-  label: Joi.string(),
+  /**
+   * Support legacy messages set to: null
+   */
+  label: Joi.string().allow(null),
 });
 
 /**
  * https://pagure.io/fedora-ci/messages/blob/e3f4758ff5a0948cceb09d0b214690351e453e7c/f/schemas/common.yaml
  */
 const schema_common = Joi.object({
-  category: Joi.string().valid(
-    'functional',
-    'integration',
-    'interoperability',
-    'static-analysis',
-    'system',
-    'validation',
-    'performance'
-  ),
-  docs: Joi.string().uri(),
+  /**
+   * Schema defines a set of values, but this doesn't work in real world.
+    .valid(
+      'functional',
+      'integration',
+      'interoperability',
+      'static-analysis',
+      'system',
+      'validation',
+      'performance'
+    )
+  */
+  category: Joi.string(),
+  /**
+   * Support legacy messages set to: null
+   */
+  docs: Joi.string().uri().allow(null),
   generated_at: Joi.date().iso(),
-  issue_url: Joi.string().uri(),
+  /**
+   * Support legacy messages set to: null
+   */
+  issue_url: Joi.string().uri().allow(null),
   label: Joi.string(),
   lifetime: Joi.number().integer().greater(0),
   namespace: Joi.string(),
   note: Joi.string(),
   progress: Joi.number().integer().min(0).max(100),
-  reason: Joi.string(),
+  /**
+   * Support legacy messages set to: null
+   */
+  reason: Joi.string().allow(null),
   recipients: Joi.array().items(Joi.string()),
   status: Joi.string().valid(
     'passed',

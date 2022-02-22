@@ -133,7 +133,8 @@ const schema_pipeline = Joi.object({
  * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/test-common.yaml
  */
 const schema_test_common = Joi.object({
-  category: Joi.string()
+  /**
+   * Schema defines a set of values, but this doesn't work in real world.
     .valid(
       'functional',
       'integration',
@@ -143,7 +144,8 @@ const schema_test_common = Joi.object({
       'validation',
       'performance'
     )
-    .required(),
+  */
+  category: Joi.string().required(),
   namespace: Joi.string().required(),
   type: Joi.string().required(),
   docs: Joi.string().uri(),
