@@ -133,6 +133,11 @@ const status = async (
  * 037    public static final UnsignedLong JMS_SELECTOR_CODE = UnsignedLong.valueOf(0x0000468C00000004L);
  * 038    public static final Symbol JMS_SELECTOR_NAME = Symbol.valueOf("apache.org:selector-filter:string");
  * 039    public static final Object[] JMS_SELECTOR_FILTER_IDS = new Object[] { JMS_SE
+ *
+ * '_' stands for a single character
+ * '%' stands for any sequence of characters, including an empty sequence.
+ * Both wildcards can be anywhere in the string.
+ * https://timjansen.github.io/jarfiller/guide/jms/selectors.xhtml
  */
 const mkFilter = (
   filterClause: string | undefined
