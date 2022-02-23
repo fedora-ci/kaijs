@@ -401,6 +401,14 @@ export const schema_compose_build_complete = Joi.object({
 });
 
 /**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.build.running.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.build.running&delta=127800
+ */
+export const schema_compose_build_running = Joi.object({
+  /* XXX: add me */
+});
+
+/**
  * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.build.error.yaml
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.build.error&delta=127800
  */
