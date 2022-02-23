@@ -147,7 +147,7 @@ const schema_brew_build_tag_is_gate_tag_redhat_module_build =
 const isV_1 = [/^0\.2\./, /^1\./];
 const isV_0_1 = /^0\.1\./;
 const isAny = Joi.any();
-const schemaError = Joi.string().error(
+export const schemaError = Joi.string().error(
   /**
    * Mesage will be stored to corresponded DB with messages that didn't pass validation,
    * and loader can continue running.
@@ -344,6 +344,30 @@ const schema_compose_test_running = Joi.alternatives().conditional(verRef, {
     },
   ],
 });
+const schema_compose_build_complete = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_compose_build_complete,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
+});
+const schema_compose_build_error = Joi.alternatives().conditional(verRef, {
+  switch: [
+    {
+      is: isV_1,
+      then: v_1.schema_compose_build_error,
+    },
+    {
+      is: isAny,
+      then: schemaError,
+    },
+  ],
+});
 
 const schemas_cs_broker_messages = {
   /**
@@ -426,7 +450,7 @@ const schemas_umb_broker_messages = {
   '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.redhat-module\\.test\\.running$/':
     schema_module_test_running,
 
-  /**
+  /*
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
    */
   '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.test\\.complete$/':
@@ -451,6 +475,16 @@ const schemas_umb_broker_messages = {
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
    */
   'VirtualTopic.eng.brew.build.tag': schema_brew_build_tag,
+  /*
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.build\\.complete$/':
+    schema_compose_build_complete,
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.error&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.build\\.error$/':
+    schema_compose_build_error,
 };
 
 export const schemas_broker = _.merge(

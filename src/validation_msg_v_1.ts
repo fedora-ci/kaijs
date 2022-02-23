@@ -21,6 +21,7 @@
 import _ from 'lodash';
 import Joi from 'joi';
 import debug from 'debug';
+import { schemaError } from './validation_broker';
 
 const log = debug('kaijs:validation_msg');
 
@@ -390,3 +391,15 @@ export const schema_compose_test_running = Joi.object({
   generated_at: schema_common.extract('generated_at').required(),
   version: schema_common.extract('version').required(),
 });
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.build.complete.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.build.complete&delta=127800
+ */
+export const schema_compose_build_complete = schemaError;
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.build.error.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.build.error&delta=127800
+ */
+export const schema_compose_build_error = schemaError;

@@ -129,5 +129,12 @@ handlers.set(
 );
 /**
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.build.complete&delta=127800
+ */
+handlers.set(
+  /^VirtualTopic\.eng\.ci(\.[\w-]+)?\.productmd-compose\.build\.(complete|error)$/,
+  handler
+);
+/**
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.build.complete&delta=127800
  * https://dashboard.osci.redhat.com/#/artifact/productmd-compose/aid/Supp-9.0.0-RHEL-9-20201008.1
  */
