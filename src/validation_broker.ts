@@ -83,6 +83,7 @@ const schema_brew_build_tag_build = Joi.object({
   id: Joi.number().integer(),
   name: Joi.string().required(),
   nvr: Joi.string().required(),
+  epoch: Joi.string().allow(null),
   owner_id: Joi.number().integer(),
   owner_name: Joi.string().required(),
   package_id: Joi.number().integer(),
@@ -106,8 +107,8 @@ const schema_brew_build_tag_tag = Joi.object({
   maven_include_all: Joi.boolean().required(),
   maven_support: Joi.boolean().required(),
   name: Joi.string().required(),
-  perm: Joi.string().required(),
-  perm_id: Joi.number().integer(),
+  perm: Joi.string().required().allow(null),
+  perm_id: Joi.number().integer().allow(null),
 });
 
 const schema_brew_build_tag_user = Joi.object({
