@@ -121,7 +121,7 @@ const handler_brew_tag = async (
     const tag_parse_err = _.attempt(
       Joi.assert,
       fq_msg,
-      schemas['gate_tag_redhat_module']
+      schemas['gate_tag_brew_build']
     );
     if (_.isError(tag_parse_err)) {
       log(' [E] Cannot parse tag: %s%s', '\n', gateTagName);

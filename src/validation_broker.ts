@@ -83,7 +83,7 @@ const schema_brew_build_tag_build = Joi.object({
   id: Joi.number().integer(),
   name: Joi.string().required(),
   nvr: Joi.string().required(),
-  epoch: Joi.string().allow(null),
+  epoch: Joi.number().allow(null),
   owner_id: Joi.number().integer(),
   owner_name: Joi.string().required(),
   package_id: Joi.number().integer(),
@@ -93,7 +93,8 @@ const schema_brew_build_tag_build = Joi.object({
   start_time: Joi.date().iso(),
   start_ts: Joi.date().timestamp(),
   state: Joi.number().integer(),
-  task_id: Joi.number().integer(),
+  /* mbs builds have task_id = null */
+  task_id: Joi.number().integer().allow(null),
   version: Joi.string().required(),
   volume_id: Joi.number().integer(),
   volume_name: Joi.string().required(),
