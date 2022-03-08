@@ -122,6 +122,26 @@ const mkThreadId = (fq_msg: FileQueueMessage) => {
   );
 };
 
+const makeTestCaseName = (body: any): string | undefined => {
+  /* V 1.x.x */
+  var namespace = _.get(body, 'test.namespace');
+  var type = _.get(body, 'test.type');
+  var category = _.get(body, 'test.category');
+  var test_case_name;
+  if (_.size(namespace) && _.size(type) && _.size(category)) {
+    test_case_name = `${namespace}.${type}.${category}`;
+    return test_case_name;
+  }
+  /* V 0.1.x */
+  namespace = _.get(body, 'namespace');
+  type = _.get(body, 'type');
+  category = _.get(body, 'category');
+  if (_.size(namespace) && _.size(type) && _.size(category)) {
+    test_case_name = `${namespace}.${type}.${category}`;
+    return test_case_name;
+  }
+};
+
 export const makeState = (fq_msg: FileQueueMessage): ArtifactState => {
   const { broker_topic, broker_msg_id, body } = fq_msg;
   var thread_id = mkThreadId(fq_msg);
@@ -130,6 +150,7 @@ export const makeState = (fq_msg: FileQueueMessage): ArtifactState => {
   var state = _.last(_.split(broker_topic, '.')) as string;
   var stage = _.nth(_.split(broker_topic, '.'), -2) as string;
   var timestamp = Date.parse(_.get(body, 'generated_at'));
+  const test_case_name = makeTestCaseName(body);
   var origin = {
     creator: 'kaijs-loader',
     reason: 'broker message',
@@ -142,14 +163,8 @@ export const makeState = (fq_msg: FileQueueMessage): ArtifactState => {
     state,
     timestamp,
     origin,
+    test_case_name,
   };
-  const namespace = _.get(body, 'test.namespace');
-  const type = _.get(body, 'test.type');
-  const category = _.get(body, 'test.category');
-  if (_.size(namespace) && _.size(type) && _.size(category)) {
-    const test_case_name = `${namespace}.${type}.${category}`;
-    kai_state.test_case_name = test_case_name;
-  }
   assert_is_valid(kai_state, 'kai_state');
   var new_state: ArtifactState = {
     broker_msg_body: body,
