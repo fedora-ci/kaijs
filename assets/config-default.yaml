@@ -69,6 +69,7 @@ loader:
     db_collection_artifacts: 'artifacts'
     db_collection_invalid: 'validation-errors'
     # http://mongodb.github.io/node-mongodb-native/3.5/api/MongoClient.html
+    # https://docs.mongodb.com/manual/reference/method/db.collection.createIndex/#option-for-collation#
     db_url: ~
     collections:
       artifacts:
@@ -77,15 +78,59 @@ loader:
         #     { orderDate: 1, category: 1 },
         #     { name: "date_category_fr", collation: { locale: "fr", strength: 2 } }
         # )
+        # 1 - from min to max, -1 - from max to min
         indexes:
           - keys:
-              orderDate: 1
-              category: 1
+              expire_at: 1
             options:
-              name: 'date_category_fr_v3'
+              name: 'expire_at_v1'
+              expireAfterSeconds: 0
+          # For case check file: https://github.com/fedora-ci/kaijs/blob/main/src/db_interface.ts
+          - keys:
+              type: 1
+              aid: -1
+            options:
+              name: 'type_aid_us'
               collation:
-                locale: 'fr'
-                strength: 2
+                locale: 'en_US'
+                numericOrdering: true
+          # type "productmd-compose"
+          - keys:
+              payload.compose_id: 1
+          - keys:
+              payload.compose_type: 1
+          - keys:
+              payload.release_type: 1
+          # type "brew-build"
+          - keys:
+              payload.task_id: 1
+          - keys:
+              payload.nvr: 1
+          - keys:
+              payload.source: 1
+          - keys:
+              payload.issuer: 1
+          - keys:
+              payload.scratch: 1
+          - keys:
+              payload.component: 1
+          - keys:
+              payload.gate_tag_name: 1
+          - keys:
+              payload.build_id: 1
+          # type: "redhat-module", nvr, issuer, scratch, source, gate_tag_name
+          - keys:
+              payload.mbs_id: 1
+          - keys:
+              payload.nsvc: 1
+          - keys:
+              payload.name: 1
+          - keys:
+              payload.stream: 1
+          - keys:
+              payload.version: 1
+          - keys:
+              payload.context: 1
       invalid:
         name: 'validation-errors'
         indexes:
