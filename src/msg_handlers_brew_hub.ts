@@ -100,7 +100,6 @@ const handler_brew_tag = async (
   var newPayload: PayloadBrewBuild | PayloadRedHatModule;
   var artifactID: string;
   const gateTagName = _.get(body, 'tag.name');
-  assert_is_valid(gateTagName, 'koji_build_info');
   if (isRedHatModule) {
     newPayload = mkPayloadRedHatModule(body);
     artifactType = 'redhat-module';
