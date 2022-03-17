@@ -106,7 +106,7 @@ const handler_brew_tag = async (
     artifactID = _.toString(newPayload.mbs_id);
     const tag_parse_err = _.attempt(
       Joi.assert,
-      fq_msg,
+      gateTagName,
       schemas['gate_tag_redhat_module']
     );
     if (_.isError(tag_parse_err)) {
@@ -119,7 +119,7 @@ const handler_brew_tag = async (
     artifactID = _.toString(newPayload.task_id);
     const tag_parse_err = _.attempt(
       Joi.assert,
-      fq_msg,
+      gateTagName,
       schemas['gate_tag_brew_build']
     );
     if (_.isError(tag_parse_err)) {

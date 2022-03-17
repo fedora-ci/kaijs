@@ -193,10 +193,10 @@ export interface PayloadFedoraModule
 export type TPayload =
   | PayloadKojiBuild
   | PayloadBrewBuild
+  | PayloadDistGitPR
   | PayloadRedHatModule
   | PayloadFedoraModule
-  | PayloadProductMDCompose
-  | PayloadDistGitPR;
+  | PayloadProductMDCompose;
 
 export interface PayloadDistGitPR {
   uid: string;
@@ -237,7 +237,7 @@ export interface ArtifactModel {
   states: ArtifactState[];
   facets: {
     /** https://www.mongodb.com/blog/post/faceted-search-with-mongodb */
-    resultsdb_testcase?: Array<string>;
+    [name: string]: Array<string>;
   };
 }
 
