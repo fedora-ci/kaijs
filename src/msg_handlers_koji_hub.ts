@@ -74,7 +74,7 @@ const handler_buildsys_tag = async (
     throw err;
   }
   assert_is_valid(buildInfo, 'koji_build_info');
-  const task_id = buildInfo.task_id;
+  const task_id = _.toString(buildInfo.task_id);
   var artifact;
   try {
     artifact = await artifacts.findOrCreate(type, _.toString(task_id));
@@ -84,7 +84,7 @@ const handler_buildsys_tag = async (
   }
   const newPayload: PayloadKojiBuild = {
     task_id,
-    build_id,
+    build_id: _.toString(build_id),
     nvr: _.get(buildInfo, 'nvr'),
     issuer: body.owner,
     source: _.get(buildInfo, 'extra.source.original_url'),

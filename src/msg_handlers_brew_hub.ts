@@ -41,6 +41,8 @@ import { FileQueueMessage } from './fqueue';
 const log = debug('kaijs:msg_handlers_brew');
 
 const mkPayloadBrewBuild = (body: any): PayloadBrewBuild => {
+  const build_id = _.get(body, 'build.build_id');
+  const build_id_str = _.isNumber(build_id) ? _.toString(build_id) : undefined;
   const payload: PayloadBrewBuild = {
     task_id: _.get(body, 'build.task_id'),
     /* Should be None for module */
@@ -51,7 +53,7 @@ const mkPayloadBrewBuild = (body: any): PayloadBrewBuild => {
     scratch: _.get(body, 'build.scratch', false),
     gate_tag_name: _.get(body, 'tag.name'),
     source: _.get(body, 'build.source'),
-    build_id: _.get(body, 'build.build_id'),
+    build_id: build_id_str,
   };
   return payload;
 };
@@ -64,6 +66,11 @@ const mkPayloadRedHatModule = (body: any): PayloadRedHatModule => {
   const stream: string = _.get(body, 'build.extra.typeinfo.module.stream');
   const version: string = _.get(body, 'build.extra.typeinfo.module.version');
   const context: string = _.get(body, 'build.extra.typeinfo.module.context');
+  const mbs_id = _.get(
+    body,
+    'build.extra.typeinfo.module.module_build_service_id'
+  );
+  const mbs_id_str = _.toString(mbs_id);
   const nsvc: string = _.join([name, stream, version, context], ':');
   const payload: PayloadRedHatModule = {
     name,
@@ -71,7 +78,7 @@ const mkPayloadRedHatModule = (body: any): PayloadRedHatModule => {
     stream,
     context,
     nsvc,
-    mbs_id: _.get(body, 'build.extra.typeinfo.module.module_build_service_id'),
+    mbs_id: mbs_id_str,
     nvr: _.get(body, 'build.nvr'),
     issuer: _.get(body, 'build.owner_name'),
     scratch: _.get(body, 'build.scratch', false),

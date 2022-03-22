@@ -149,7 +149,7 @@ export interface ArtifactState {
 
 export interface PayloadBrewBuild {
   /** task id */
-  task_id: number;
+  task_id: string;
   /** 0ad-0.0.23b-13.fc33 */
   nvr: string;
   /** owner of the build */
@@ -166,12 +166,12 @@ export interface PayloadBrewBuild {
    * git://pkgs.devel.redhat.com/rpms/navilu-fonts?#937e7b088e82736a62d0b21cbb0f2e1299400b2e
    */
   source: string;
-  build_id?: number;
+  build_id?: string;
 }
 
 export interface PayloadRedHatModule {
   /** mbs id */
-  mbs_id: number;
+  mbs_id: string;
   nvr: string;
   issuer: string;
   nsvc: string;
