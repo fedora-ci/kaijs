@@ -81,6 +81,16 @@ const mkPayloadV1 = (body: any): PayloadBrewBuild | PayloadKojiBuild => {
   return pl;
 };
 
+const setExpire = (dbArtifact: ArtifactModel) => {
+  const scratch = _.get(dbArtifact.payload, 'scratch');
+  if (_.isBoolean(scratch) && scratch) {
+    const expire_at = new Date();
+    var keep_days = 60;
+    expire_at.setDate(expire_at.getDate() + keep_days);
+    dbArtifact.expire_at = expire_at;
+  }
+};
+
 const payloadHandlers: TPayloadHandlersSet = new Map<RegExp, TGetPayload>();
 /**
  * Payload handlers are based on message version
@@ -131,6 +141,7 @@ const handlerCommon = async (
     newPayload,
     customMerge
   );
+  setExpire(db_artifact);
   log(' [i] handlerCommon updated doc: %s%o', '\n', db_artifact);
   return db_artifact;
 };

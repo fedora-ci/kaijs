@@ -235,10 +235,8 @@ export interface ArtifactModel {
     | PayloadFedoraModule
     | PayloadProductMDCompose;
   states: ArtifactState[];
-  facets: {
-    /** https://www.mongodb.com/blog/post/faceted-search-with-mongodb */
-    [name: string]: Array<string>;
-  };
+  /** When the mongodb-document will be auto-removed, for example: scratch build */
+  expire_at?: Date;
 }
 
 export interface ValidationErrorsModel {

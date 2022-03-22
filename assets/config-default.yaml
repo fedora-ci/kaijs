@@ -79,6 +79,7 @@ loader:
         #     { name: "date_category_fr", collation: { locale: "fr", strength: 2 } }
         # )
         # 1 - from min to max, -1 - from max to min
+        # If index config is modified : the index name must be changed to apply new settings
         indexes:
           - keys:
               expire_at: 1
