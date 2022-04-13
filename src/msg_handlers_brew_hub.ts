@@ -101,7 +101,7 @@ const handler_brew_tag = async (
    */
   const isRedHatModule = _.has(
     body,
-    'body.build.extra.typeinfo.module.module_build_service_id'
+    'build.extra.typeinfo.module.module_build_service_id'
   );
   var artifactType: Extract<ArtifactTypes, 'redhat-module' | 'brew-build'>;
   var newPayload: PayloadBrewBuild | PayloadRedHatModule;
