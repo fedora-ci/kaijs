@@ -28,15 +28,9 @@
  */
 
 import _ from 'lodash';
-import fs from 'fs';
-import path from 'path';
 import debug from 'debug';
 import { getcfg, mkDirParents } from './cfg';
-import simpleGit, {
-  SimpleGit,
-  TaskOptions,
-  SimpleGitOptions,
-} from 'simple-git';
+import simpleGit, { SimpleGit, SimpleGitOptions } from 'simple-git';
 
 const log = debug('kaijs:get_schema');
 const cfg = getcfg();
@@ -68,20 +62,17 @@ const options: Partial<SimpleGitOptions> = {
  */
 export interface SchemasParams {
   gitRepoPath: string;
-  schemasDirName: string;
   upstreamGit: string;
 }
 
 const defaultParams: SchemasParams = {
   gitRepoPath: 'schemas.git',
-  schemasDirName: 'schemas',
   upstreamGit: 'https://pagure.io/fedora-ci/messages.git',
 };
 
 const suppliedParams: SchemasParams = {
   gitRepoPath: cfg.loader.schemas_local_git_repo_path,
   upstreamGit: cfg.loader.schemas_git_upstream,
-  schemasDirName: cfg.loader.schemas_local_dir_unpacked,
 };
 
 const runtimeParams: SchemasParams = {
@@ -90,10 +81,9 @@ const runtimeParams: SchemasParams = {
 };
 
 export const getAllSchemas = async () => {
-  const { gitRepoPath, schemasDirName, upstreamGit } = runtimeParams;
+  const { gitRepoPath, upstreamGit } = runtimeParams;
   log(' [i] [param] Upstream repo: %s', upstreamGit);
   log(' [i] [param] Cloned repo path: %s', gitRepoPath);
-  log(' [i] [param] Unpack schemas to dir: %s', schemasDirName);
   const repoPath = mkDirParents(gitRepoPath);
   const git: SimpleGit = simpleGit(options).env('GIT_DIR', repoPath);
   /**
@@ -134,22 +124,6 @@ export const getAllSchemas = async () => {
   await git.fetch({ '--prune': null, '--prune-tags': null });
   const tags = await git.tags();
   log(' [i] known tags', tags);
-  for (const tag of tags.all) {
-    const dir = path.resolve(repoPath, `../${schemasDirName}/${tag}`);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true, mode: 0o755 });
-    }
-    log(' [i] unpack %s tag to %s', tag, dir);
-    /**
-     * git --work-tree=./1.1.6 --git-dir=./schemas checkout --force refs/tags/1.1.6 -- .
-     *
-     * Dot at the command above is important. This doesn't change HEAD in git-dir
-     *
-     * Worktree must be present. It can have some files. `--force` tag will reset modified files.
-     */
-    const taskOptions: TaskOptions = ['--force', `refs/tags/${tag}`, '--', '.'];
-    await git.env('GIT_WORK_TREE', dir).checkout(taskOptions);
-  }
 };
 
 /**

@@ -210,6 +210,8 @@ loader:
               name: 'broker_topic_v1'
 
   file_queue_path: 'messages-queue'
+  schemas_git_upstream: 'https://pagure.io/fedora-ci/messages.git'
+  schemas_local_git_repo_path: 'schemas.git'
 
 koji_fp:
   host: 'koji.fedoraproject.org'
@@ -233,6 +235,9 @@ env_to_config_map:
       db_collection_artifacts: LOADER_DB_COLLECTION_ARTIFACTS
       db_collection_invalid: LOADER_DB_COLLECTION_INVALID
     file_queue_path: LOADER_FILE_QUEUE_PATH
+    schemas_git_upstream: LOADER_SCHEMAS_GIT_UPSTREAM
+    schemas_local_git_repo_path: LOADER_SCHEMAS_GIT_REPO_PATH
+    schemas_local_dir_unpacked: LOADER_SCHEMAS_DIR_UNPACKED
   listener:
     broker_umb:
       client_name: LISTENER_BROKER_UMB_CLIENT_NAME

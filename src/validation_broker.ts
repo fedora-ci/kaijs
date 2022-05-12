@@ -21,8 +21,7 @@
 import _ from 'lodash';
 import Joi from 'joi';
 import debug from 'debug';
-import * as v_1 from './validation_msg_v_1';
-import * as v_0_1 from './validation_msg_v_0.1';
+import * as v_0_y_z from './validation_msg_v_0.y.z';
 
 export class WrongVersionError extends Error {
   constructor(message: string) {
@@ -146,9 +145,6 @@ const schema_brew_build_tag_is_gate_tag_redhat_module_build =
     /^(advanced-virt-[\w\.]+-)?(rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?-modules-gate)$/
   );
 
-const isV_1 = [/^0\.2\./, /^1\./];
-const isV_0_1 = /^0\.1\./;
-const isAny = Joi.any();
 export const schemaError = Joi.string().error(
   /**
    * Mesage will be stored to corresponded DB with messages that didn't pass validation,
@@ -161,227 +157,26 @@ const verRef = Joi.ref('.version');
 /**
  * brew/koji build
  */
-const schema_rpm_build_test_complete = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_rpm_build_test_complete,
-    },
-    {
-      is: isV_0_1,
-      then: v_0_1.schema_rpm_build_test_complete,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-const schema_rpm_build_test_error = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_rpm_build_test_error,
-    },
-    {
-      is: isV_0_1,
-      then: v_0_1.schema_rpm_build_test_error,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-const schema_rpm_build_test_queued = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_rpm_build_test_queued,
-    },
-    {
-      is: isV_0_1,
-      then: v_0_1.schema_rpm_build_test_queued,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-const schema_rpm_build_test_running = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_rpm_build_test_running,
-    },
-    {
-      is: isV_0_1,
-      then: v_0_1.schema_rpm_build_test_running,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
+const schema_rpm_build_test_complete = v_0_y_z.schema_rpm_build_test_complete;
+const schema_rpm_build_test_error = v_0_y_z.schema_rpm_build_test_error;
+const schema_rpm_build_test_queued = v_0_y_z.schema_rpm_build_test_queued;
+const schema_rpm_build_test_running = v_0_y_z.schema_rpm_build_test_running;
 
 /**
  * redhat/fedora build
  */
-const schema_module_test_complete = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_module_test_complete,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-
-const schema_module_test_error = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_module_test_error,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-const schema_module_test_queued = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_module_test_queued,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-const schema_module_test_running = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_module_test_running,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
+const schema_module_test_complete = v_0_y_z.schema_module_test_complete;
+const schema_module_test_error = v_0_y_z.schema_module_test_error;
+const schema_module_test_queued = v_0_y_z.schema_module_test_queued;
+const schema_module_test_running = v_0_y_z.schema_module_test_running;
 
 /**
  * productmd-compose
  */
-const schema_compose_test_complete = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_compose_test_complete,
-    },
-    {
-      is: isV_0_1,
-      then: v_0_1.schema_compose_test_complete,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-const schema_compose_test_error = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_compose_test_error,
-    },
-    {
-      is: isV_0_1,
-      then: v_0_1.schema_compose_test_error,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-const schema_compose_test_queued = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_compose_test_queued,
-    },
-    {
-      is: isV_0_1,
-      then: v_0_1.schema_compose_test_queued,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-const schema_compose_test_running = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_compose_test_running,
-    },
-    {
-      is: isV_0_1,
-      then: v_0_1.schema_compose_test_running,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-const schema_compose_build_complete = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_compose_build_complete,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-const schema_compose_build_running = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_compose_build_running,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
-const schema_compose_build_error = Joi.alternatives().conditional(verRef, {
-  switch: [
-    {
-      is: isV_1,
-      then: v_1.schema_compose_build_error,
-    },
-    {
-      is: isAny,
-      then: schemaError,
-    },
-  ],
-});
+const schema_compose_test_complete = v_0_y_z.schema_compose_test_complete;
+const schema_compose_test_error = v_0_y_z.schema_compose_test_error;
+const schema_compose_test_queued = v_0_y_z.schema_compose_test_queued;
+const schema_compose_test_running = v_0_y_z.schema_compose_test_running;
 
 const schemas_cs_broker_messages = {
   /**
@@ -489,21 +284,6 @@ const schemas_umb_broker_messages = {
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
    */
   'VirtualTopic.eng.brew.build.tag': schema_brew_build_tag,
-  /*
-   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
-   */
-  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.build\\.complete$/':
-    schema_compose_build_complete,
-  /*
-   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
-   */
-  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.build\\.running$/':
-    schema_compose_build_running,
-  /**
-   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.error&delta=127800
-   */
-  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.build\\.error$/':
-    schema_compose_build_error,
 };
 
 export const schemas_broker = _.merge(

@@ -24,18 +24,16 @@
 
 import _ from 'lodash';
 import debug from 'debug';
-import assert from 'assert';
 import Joi from 'joi';
 import { Artifacts } from './db';
 import {
   ArtifactModel,
   ArtifactTypes,
-  atype_to_hub_map,
   PayloadBrewBuild,
   PayloadRedHatModule,
 } from './db_interface';
 import { THandler, customMerge, THandlersSet, mkPayload } from './msg_handlers';
-import { assert_is_valid, schemas } from './validation';
+import { schemas } from './validation';
 import { FileQueueMessage } from './fqueue';
 
 const log = debug('kaijs:msg_handlers_brew');

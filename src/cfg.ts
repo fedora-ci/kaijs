@@ -230,6 +230,9 @@ export interface Cfg {
         };
       };
     };
+    schemas_git_upstream: string;
+    schemas_local_git_repo_path: string;
+    schemas_local_dir_unpacked: string;
     file_queue_path: string;
   };
   koji_fp: {

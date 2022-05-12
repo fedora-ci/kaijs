@@ -43,13 +43,12 @@ import {
   UnknownBrokerTopicModel,
 } from './db_interface';
 import { getHandler, NoAssociatedHandlerError } from './msg_handlers';
-import { assert_is_valid, SchemaName } from './validation';
+import { assertMsgIsValid, assert_is_valid } from './validation';
 import { WrongVersionError } from './validation_broker';
 import { FileQueueMessage } from './fqueue';
 
 const log = debug('kaijs:db');
 const cfg = getcfg();
-const db_cfg = cfg.loader.db;
 
 function on_close(err: MongoError): void {
   console.warn(`db socket closed: ${err}`);
@@ -529,7 +528,7 @@ export class Artifacts extends DBCollection {
     /**
      * Verify for correctness of input message with associated schema.
      */
-    assert_is_valid(message.body, broker_topic as SchemaName);
+    await assertMsgIsValid(message);
     /**
      * Invoke associated handler for the message
      */

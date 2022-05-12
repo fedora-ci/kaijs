@@ -18,7 +18,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import _, { isBuffer } from 'lodash';
+import _ from 'lodash';
 import Joi from 'joi';
 import debug from 'debug';
 
@@ -29,6 +29,8 @@ import {
   FileQueueMessage,
 } from './fqueue';
 import { getcfg, mkDirParents } from './cfg';
+import cron, { ScheduledTask } from 'node-cron';
+import { getAllSchemas } from './get_schema';
 import { NoAssociatedHandlerError } from './msg_handlers';
 import {
   Artifacts,
@@ -44,6 +46,7 @@ const cfg = getcfg();
 import { schemas } from './validation';
 import { WrongVersionError } from './validation_broker';
 import { metrics_up_fq, metrics_up_parse } from './metrics';
+import { AJVValidationError } from './validation_ajv';
 /** absolute path to present dump dir */
 var file_queue_path: string;
 const file_queue_path_cfg = cfg.loader.file_queue_path;
@@ -99,6 +102,19 @@ async function start(): Promise<never> {
       _.curry(handle_signal)(fqueue, artifacts, validation_errors)
     );
   }
+
+  /** Do not process messages until we have local copy of the git-repo with messages schemas */
+  await getAllSchemas();
+  /**
+   * Update schemas each 12 hours:
+   */
+  const cronExprShemas = '2 */12 * * *';
+  log(
+    ' [i] schedule cron task to update schemas. Cron cfg: %s',
+    cronExprShemas
+  );
+  cron.schedule(cronExprShemas, getAllSchemas);
+
   while (true) {
     let fq_msg: FileQueueMessage;
     let fq_commit: FileQueueCallback, fq_rollback: FileQueueCallback;
@@ -137,7 +153,8 @@ async function start(): Promise<never> {
     } catch (err) {
       if (
         err instanceof Joi.ValidationError ||
-        err instanceof WrongVersionError
+        err instanceof WrongVersionError ||
+        err instanceof AJVValidationError
       ) {
         /**
          * Store broker-message that cannot be validated to special DB.

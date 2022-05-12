@@ -22,7 +22,13 @@ import _ from 'lodash';
 import Joi from 'joi';
 import debug from 'debug';
 import { metrics_up_parse } from './metrics';
-import { schemas_broker, schemas_gate_tag } from './validation_broker';
+import {
+  schemas_broker,
+  schemas_gate_tag,
+  WrongVersionError,
+} from './validation_broker';
+import { FileQueueMessage } from './fqueue';
+import { assertMsgIsValidAJV } from './validation_ajv';
 
 const log = debug('kaijs:validation');
 
@@ -114,7 +120,11 @@ const schema_kai_state = Joi.object({
   state: Joi.string()
     .valid('queued', 'running', 'complete', 'error')
     .required(),
-  timestamp: Joi.number().greater(0).required(),
+  /**
+   * XXX:
+   * timestamp -- a lot of messages doesn't have this value
+   * timestamp: Joi.number().greater(0).required(),
+   */
   origin: Joi.object({
     creator: Joi.string().required(),
     reason: Joi.string().required(),
@@ -241,3 +251,39 @@ export function assert_is_valid(obj: any, schema_name: string) {
   }
   metrics_up_parse(schema_name, 'ok');
 }
+
+/**
+ * Verify for correctness of input message with associated schema.
+ *
+ * Messages have version.
+ *
+ * OSCI-loader follows the same rules as ResultsDB
+ * loader has. In particular there are 2 listeners for ResultsDB.
+ * ResultsDB-listener-1: processes messages with version < 1.0.0
+ * ResultsDB-listener-2: precesses messages with version >= 1.0.0
+ *
+ * ResultsDB-listener-1 doesn't proceed strict schema validation.
+ * ResultsDB-listener-2 proceeds with strict schema validation.
+ *
+ * OSCI-loader does the same:
+ *
+ * 1) relaxed schema validation for messages with: version = 0.y.z
+ * 2) sctrict schema validation for messages with: version = x.y.z, where x != 0
+ */
+export const assertMsgIsValid = async (
+  message: FileQueueMessage
+): Promise<void> => {
+  const { broker_topic, broker_msg_id } = message;
+  const version: string | undefined = _.get(message.body, 'version');
+  if (_.isUndefined(version) || _.isEmpty(version)) {
+    throw new WrongVersionError(
+      `Message: ${broker_msg_id}, missing 'version' entry.`
+    );
+  }
+  const strictValidation = !_.startsWith(version, '0.');
+  if (strictValidation) {
+    await assertMsgIsValidAJV(message);
+  } else {
+    assert_is_valid(message.body, broker_topic as SchemaName);
+  }
+};

@@ -2,5 +2,5 @@
   "watch": ["src"],
   "ext": ".ts,.js",
   "ignore": [],
-  "exec": "source ./env.sh && ts-node ./src/listener_umb.ts | ./node_modules/.bin/pino-pretty"
+  "exec": "source ./env-umb.sh && ts-node ./src/listener_umb.ts | ./node_modules/.bin/pino-pretty"
 }
