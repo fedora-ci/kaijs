@@ -274,15 +274,20 @@ export const assertMsgIsValid = async (
   message: FileQueueMessage
 ): Promise<void> => {
   const { broker_topic, broker_msg_id } = message;
-  const version: string | undefined = _.get(message.body, 'version');
-  if (_.isUndefined(version) || _.isEmpty(version)) {
-    throw new WrongVersionError(
-      `Message: ${broker_msg_id}, missing 'version' entry.`
-    );
-  }
-  const strictValidation = !_.startsWith(version, '0.');
-  if (strictValidation) {
-    await assertMsgIsValidAJV(message);
+  const isCIMessage = _.includes(broker_topic, '.ci.');
+  if (isCIMessage) {
+    const version: string | undefined = _.get(message.body, 'version');
+    if (_.isUndefined(version) || _.isEmpty(version)) {
+      throw new WrongVersionError(
+        `Message: ${broker_msg_id}, missing 'version' entry.`
+      );
+    }
+    const strictValidation = !_.startsWith(version, '0.');
+    if (strictValidation) {
+      await assertMsgIsValidAJV(message);
+    } else {
+      assert_is_valid(message.body, broker_topic as SchemaName);
+    }
   } else {
     assert_is_valid(message.body, broker_topic as SchemaName);
   }
