@@ -135,6 +135,33 @@ export const schema_compose_test_running = Joi.object({
 });
 
 /**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.build.complete.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.build.complete&delta=127800
+ */
+export const schema_compose_build_complete = Joi.object({
+  artifact: schema_productmd_compose.required(),
+  version: schema_common.extract('version').required(),
+});
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.build.running.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.build.running&delta=127800
+ */
+export const schema_compose_build_running = Joi.object({
+  artifact: schema_productmd_compose.required(),
+  version: schema_common.extract('version').required(),
+});
+
+/**
+ * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.build.error.yaml
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.productmd-compose.build.error&delta=127800
+ */
+export const schema_compose_build_error = Joi.object({
+  artifact: schema_productmd_compose.required(),
+  version: schema_common.extract('version').required(),
+});
+
+/**
  * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/module-build.yaml
  */
 const schema_module_build = Joi.object({

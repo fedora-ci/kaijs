@@ -171,12 +171,19 @@ const schema_module_test_queued = v_0_y_z.schema_module_test_queued;
 const schema_module_test_running = v_0_y_z.schema_module_test_running;
 
 /**
- * productmd-compose
+ * productmd-compose test
  */
 const schema_compose_test_complete = v_0_y_z.schema_compose_test_complete;
 const schema_compose_test_error = v_0_y_z.schema_compose_test_error;
 const schema_compose_test_queued = v_0_y_z.schema_compose_test_queued;
 const schema_compose_test_running = v_0_y_z.schema_compose_test_running;
+
+/**
+ * productmd-composee build
+ */
+const schema_compose_build_complete = v_0_y_z.schema_compose_build_complete;
+const schema_compose_build_error = v_0_y_z.schema_compose_build_error;
+const schema_compose_build_running = v_0_y_z.schema_compose_build_running;
 
 const schemas_cs_broker_messages = {
   /**
@@ -284,6 +291,22 @@ const schemas_umb_broker_messages = {
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
    */
   'VirtualTopic.eng.brew.build.tag': schema_brew_build_tag,
+
+  /*
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.build\\.complete$/':
+    schema_compose_build_complete,
+  /*
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.build\\.running$/':
+    schema_compose_build_running,
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.error&delta=127800
+   */
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.build\\.error$/':
+    schema_compose_build_error,
 };
 
 export const schemas_broker = _.merge(
