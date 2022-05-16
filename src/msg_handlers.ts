@@ -95,6 +95,7 @@ const mkThreadId = (fq_msg: FileQueueMessage) => {
     return thread_id;
   }
   var run_url = _.get(body, 'run.url');
+  var test_case_name = makeTestCaseName(body);
   if (!_.isEmpty(run_url) && _.isString(run_url)) {
     /**
      * if msg_body.pipeline.id is absent generate a dummy thread_id based on
@@ -113,7 +114,10 @@ const mkThreadId = (fq_msg: FileQueueMessage) => {
      *           body.get('type', 'tier1'))).hexdigest())
      *
      */
-    const hash = crypto.createHash('sha256').update(run_url).digest('hex');
+    const hash = crypto
+      .createHash('sha256')
+      .update(run_url + test_case_name)
+      .digest('hex');
     thread_id = `dummy-thread-${hash}`;
     return thread_id;
   }
