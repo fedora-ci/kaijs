@@ -131,12 +131,11 @@ const schema_kai_state = Joi.object({
   }),
   /**
    * requre at least 2 dots, no whitespaces
+   * Only for for messages with stage `test`
    */
   test_case_name: Joi.string().pattern(/^\S+\.\S+\.\S+$/),
 });
 
-/**
- */
 const schema_db_artifact_state = Joi.object({
   kai_state: schema_kai_state,
 });
@@ -192,6 +191,8 @@ const schemas_fq = {
 const schemas_db = {
   db_artifact: schema_db_artifact,
   kai_state: schema_kai_state,
+  /** add ability to verify test-case name */
+  test_case_name: schema_kai_state.extract('test_case_name').required(),
 };
 
 const schemas_koji = {

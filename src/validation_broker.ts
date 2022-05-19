@@ -125,7 +125,7 @@ const schema_brew_build_tag_user = Joi.object({
  */
 const schema_brew_build_tag = Joi.object({
   build: schema_brew_build_tag_build.required(),
-  force: Joi.boolean().required(),
+  force: Joi.boolean().required().allow(null),
   tag: schema_brew_build_tag_tag.required(),
   user: schema_brew_build_tag_user.required(),
 });

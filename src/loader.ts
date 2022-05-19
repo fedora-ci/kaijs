@@ -21,6 +21,7 @@
 import _ from 'lodash';
 import Joi from 'joi';
 import debug from 'debug';
+import cron from 'node-cron';
 
 import {
   fqueue as fq,
@@ -29,7 +30,6 @@ import {
   FileQueueMessage,
 } from './fqueue';
 import { getcfg, mkDirParents } from './cfg';
-import cron, { ScheduledTask } from 'node-cron';
 import { getAllSchemas } from './get_schema';
 import { NoAssociatedHandlerError } from './msg_handlers';
 import {
@@ -38,15 +38,16 @@ import {
   UnknownBrokerTopics,
   get_collection,
 } from './db';
+import { schemas } from './validation';
+import { WrongVersionError } from './validation_broker';
+import { metrics_up_fq, metrics_up_parse } from './metrics';
+import { AJVValidationError } from './validation_ajv';
+
 /** Wire-in pino and debug togather. */
 require('./pino_logger');
 
 const log = debug('kaijs:loader');
 const cfg = getcfg();
-import { schemas } from './validation';
-import { WrongVersionError } from './validation_broker';
-import { metrics_up_fq, metrics_up_parse } from './metrics';
-import { AJVValidationError } from './validation_ajv';
 /** absolute path to present dump dir */
 var file_queue_path: string;
 const file_queue_path_cfg = cfg.loader.file_queue_path;
