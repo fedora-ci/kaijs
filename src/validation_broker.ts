@@ -100,7 +100,7 @@ const schema_brew_build_tag_build = Joi.object({
 });
 
 const schema_brew_build_tag_tag = Joi.object({
-  arches: Joi.string().allow('').required(),
+  arches: Joi.string().allow('', null).required(),
   extra: Joi.object({}),
   id: Joi.number().integer(),
   locked: Joi.boolean().required(),
