@@ -270,7 +270,7 @@ export interface RawMessagesModel {
   /** Broker message id */
   broker_msg_id: string;
   /** Message headers */
-  broker_extra: any;
+  broker_extra?: any;
 }
 
 export interface UnknownBrokerTopicModel {

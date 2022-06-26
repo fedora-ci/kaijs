@@ -53,7 +53,7 @@ export interface FileQueueMessage {
   /** Payload of message */
   body: any;
   /** Message headers */
-  broker_extra: any;
+  broker_extra?: any;
 }
 
 async function make(path: string) {

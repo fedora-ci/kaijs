@@ -76,7 +76,7 @@ const socketOptions = {
 
 const process_msg = (
   channel: amqp.Channel,
-  msg: amqp.ConsumeMessage | null
+  msg: amqp.ConsumeMessage | null,
 ): void => {
   if (_.isNull(msg)) {
     log(' [x] callback with parameter: msg == null');
@@ -97,7 +97,7 @@ const process_msg = (
       ' [W] Cannot decode body, skipping message: %s, %s, %O',
       broker_msg_id,
       error,
-      content_str
+      content_str,
     );
     channel.ack(msg);
     return;
@@ -109,6 +109,7 @@ const process_msg = (
     fq_msg_id: fqueue_id,
     provider_name: listener_name,
     provider_timestamp: unix_time,
+    broker_extra: { ...headers },
   };
   /** 'sent-at': '2021-07-30T13:10:14+00:00' */
   let provider_timestamp = Math.floor(Date.parse(headers['sent-at']) / 1000);
@@ -116,7 +117,7 @@ const process_msg = (
     payload_obj.header_timestamp = provider_timestamp;
   }
   fq.push(fqueue, payload_obj).catch((err) =>
-    console.warn('Could not store message at file-queue: %s.', err)
+    console.warn('Could not store message at file-queue: %s.', err),
   );
   /**
    * Acknowledge to the broker that the message is processed on our side, and can be discarded.
@@ -126,7 +127,7 @@ const process_msg = (
 
 const queue_status = async (
   queue: string,
-  channel: amqp.Channel
+  channel: amqp.Channel,
 ): Promise<void> => {
   /** Print out info about queue, how many queued messages, to trace missing Ack */
   const status = await channel.checkQueue(queue);
@@ -134,7 +135,7 @@ const queue_status = async (
     ' [i] Queue name: %s, unprocessed messages: %s, consumers: %s',
     status.queue,
     status.messageCount,
-    status.consumerCount
+    status.consumerCount,
   );
 };
 
@@ -145,7 +146,7 @@ async function connect(): Promise<amqp.Connection> {
     log(`Connected.`);
   } catch (error) {
     throw new Error(
-      `Whoops! Cannot create connection to AMQP server. ${error}`
+      `Whoops! Cannot create connection to AMQP server. ${error}`,
     );
   }
   return conn;
@@ -153,7 +154,7 @@ async function connect(): Promise<amqp.Connection> {
 
 async function handle_signal(
   con: amqp.Connection,
-  signal: NodeJS.Signals
+  signal: NodeJS.Signals,
 ): Promise<void> {
   /* Will immediately invalidate any unresolved operations, so it’s best to make sure you’ve
    * done everything you need to before calling this. Will be resolved once the connection,
@@ -206,10 +207,10 @@ async function start() {
   connection.on('close', on_close);
   connection.on('error', on_error);
   connection.on('blocked', () =>
-    console.warn('RabbitMQ server decided to block the connection.')
+    console.warn('RabbitMQ server decided to block the connection.'),
   );
   connection.on('unblocked', () =>
-    console.warn('RabbitMQ server decided to unblock the connection.')
+    console.warn('RabbitMQ server decided to unblock the connection.'),
   );
   /*
    * Channel objects are something like session
@@ -221,7 +222,7 @@ async function start() {
   }
   channel.on('close', () => log('Channel: closing-handshake has completed.'));
   channel.on('error', (err) =>
-    log('Server closes the channel for reason: %s', err)
+    log('Server closes the channel for reason: %s', err),
   );
   const queue_name = uuidv4(); // Server creates a queue name for us set to ''
   log('Gen queue name: %s', queue_name);
@@ -255,7 +256,7 @@ async function start() {
     'Access to queue established: %s, messages: %s, consumers: %s',
     queue.queue,
     queue.messageCount,
-    queue.consumerCount
+    queue.consumerCount,
   );
   _.forEach(topics_cfg, (key) => {
     /*
@@ -285,12 +286,12 @@ async function start() {
        * acknowledge that we received each message
        */
       noAck: false,
-    }
+    },
   );
   const status_task = cron.schedule(
     /** running a task every minute */
     '* * * * *',
-    _.partial(queue_status, queue.queue, channel)
+    _.partial(queue_status, queue.queue, channel),
   );
   log(' [*] Waiting for messages. To exit press CTRL+C');
 }
