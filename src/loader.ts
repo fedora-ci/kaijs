@@ -37,6 +37,7 @@ import {
   ValidationErrors,
   UnknownBrokerTopics,
   get_collection,
+  RawMessages,
 } from './db';
 import { schemas } from './validation';
 import { WrongVersionError } from './validation_broker';
@@ -65,7 +66,7 @@ async function handle_signal(
   fqueue: any,
   artifacts: Artifacts,
   validation_errors: ValidationErrors,
-  signal: NodeJS.Signals
+  signal: NodeJS.Signals,
 ): Promise<void> {
   log(`Received: ${signal}. Closing connection to filequeue and db.`);
   /*
@@ -88,10 +89,12 @@ async function start(): Promise<never> {
   var artifacts: Artifacts;
   var validation_errors: ValidationErrors;
   var no_handlers: UnknownBrokerTopics;
+  var raw_messages: RawMessages;
   try {
     artifacts = (await get_collection('artifacts')) as Artifacts;
     validation_errors = (await get_collection('invalid')) as ValidationErrors;
     no_handlers = (await get_collection('no_handler')) as UnknownBrokerTopics;
+    raw_messages = (await get_collection('raw_messages')) as RawMessages;
   } catch (error) {
     console.warn('Whoops! Cannot connect to db.', error);
     process.exit(1);
@@ -100,7 +103,7 @@ async function start(): Promise<never> {
   for (const signal of clean_on) {
     process.once(
       signal,
-      _.curry(handle_signal)(fqueue, artifacts, validation_errors)
+      _.curry(handle_signal)(fqueue, artifacts, validation_errors),
     );
   }
 
@@ -112,7 +115,7 @@ async function start(): Promise<never> {
   const cronExprShemas = '2 */12 * * *';
   log(
     ' [i] schedule cron task to update schemas. Cron cfg: %s',
-    cronExprShemas
+    cronExprShemas,
   );
   cron.schedule(cronExprShemas, getAllSchemas);
 
@@ -122,14 +125,16 @@ async function start(): Promise<never> {
     try {
       log(' [i] Waiting for next fq message...');
       const { message, commit, rollback }: FileQueueEntry = await fq.tpop(
-        fqueue
+        fqueue,
       );
       [fq_msg, fq_commit, fq_rollback] = [message, commit, rollback];
     } catch (err) {
       console.warn('Cannot get msg from file-queue', err);
       process.exit(1);
     }
-    const parse_err = _.attempt(Joi.assert, fq_msg, schemas['fq_msg']);
+    const parse_err = _.attempt(Joi.assert, fq_msg, schemas['fq_msg'], {
+      allowUnknown: true,
+    });
     if (_.isError(parse_err)) {
       fq_commit((err: Error) => {
         if (err) throw err;
@@ -139,17 +144,41 @@ async function start(): Promise<never> {
       log(
         ' [E] Cannot parse received message from file-queue. Dropping message:%s%s',
         '\n',
-        parse_err.message
+        parse_err.message,
       );
       continue;
     }
     const fq_length = await fq.length(fqueue);
+    log(
+      ' [i] Adding message to DB with file-queue message id %O. Remain unprocessed messages: %s',
+      fq_msg.fq_msg_id,
+      fq_length,
+    );
     try {
-      log(
-        ' [i] Adding message to DB with file-queue message id %O. Remain unprocessed messages: %s',
-        fq_msg.fq_msg_id,
-        fq_length
-      );
+      await raw_messages.add_to_db(fq_msg);
+    } catch (err) {
+      if (_.isError(err)) {
+        console.warn(
+          ' [E] Cannot store raw message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
+          fq_msg.broker_msg_id,
+          fq_msg.fq_msg_id,
+          err.message,
+        );
+        /** At this point message stays un-acked at file-queue */
+        log(
+          ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
+          fq_msg.broker_msg_id,
+        );
+        fq_rollback((err: Error) => {
+          if (err) throw err;
+        });
+        /**
+         * Exit from programm.
+         */
+        process.exit(1);
+      }
+    }
+    try {
       await artifacts.add_to_db(fq_msg);
     } catch (err) {
       if (
@@ -165,14 +194,14 @@ async function start(): Promise<never> {
           fq_msg.broker_msg_id,
           fq_msg.fq_msg_id,
           err.message,
-          fq_msg
+          fq_msg,
         );
         metrics_up_fq('nack');
         try {
           await validation_errors.add_to_db(fq_msg, err);
           log(
             ' [i] stored invalid message. Broker msg-id %s.',
-            fq_msg.broker_msg_id
+            fq_msg.broker_msg_id,
           );
         } catch (err) {
           /** The message  */
@@ -181,12 +210,12 @@ async function start(): Promise<never> {
               ' [E] Cannot store invalid message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
               fq_msg.broker_msg_id,
               fq_msg.fq_msg_id,
-              err.message
+              err.message,
             );
             /** At this point message stays un-acked at file-queue */
             log(
               ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
-              fq_msg.broker_msg_id
+              fq_msg.broker_msg_id,
             );
             fq_rollback((err: Error) => {
               if (err) throw err;
@@ -207,7 +236,7 @@ async function start(): Promise<never> {
         log(
           ' [E] Store message to no-handler db. Broker msg-id: %s, file-queue message-id: %s.',
           fq_msg.broker_msg_id,
-          fq_msg.fq_msg_id
+          fq_msg.fq_msg_id,
         );
         metrics_up_fq('nack');
         try {
@@ -219,7 +248,7 @@ async function start(): Promise<never> {
               ' [E] Cannot store invalid message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
               fq_msg.broker_msg_id,
               fq_msg.fq_msg_id,
-              err.message
+              err.message,
             );
           } else {
             throw err;
@@ -231,14 +260,14 @@ async function start(): Promise<never> {
             ' [E] Cannot update DB with received message.',
             `File-queue message id: ${fq_msg.fq_msg_id}`,
             'Error is:',
-            err.message
+            err.message,
           );
         } else {
           throw err;
         }
         log(
           ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
-          fq_msg.broker_msg_id
+          fq_msg.broker_msg_id,
         );
         fq_rollback((err: Error) => {
           if (err) throw err;

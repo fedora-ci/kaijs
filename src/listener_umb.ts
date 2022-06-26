@@ -86,15 +86,15 @@ var links: Set<Receiver> = new Set();
 
 const status = async (
   links: Set<Receiver>,
-  connection: Connection
+  connection: Connection,
 ): Promise<void> => {
   const is_open = _.sumBy([...links], (link) => (link.isOpen() ? 1 : 0));
   const is_remote_open = _.sumBy([...links], (link) =>
-    link.isRemoteOpen() ? 1 : 0
+    link.isRemoteOpen() ? 1 : 0,
   );
   const is_closed = _.sumBy([...links], (link) => (link.isClosed() ? 1 : 0));
   const is_session_closed = _.sumBy([...links], (link) =>
-    link.isSessionClosed() ? 1 : 0
+    link.isSessionClosed() ? 1 : 0,
   );
   /**
    * At reconnect period isOpen/isRemoteOpen == 0
@@ -106,7 +106,7 @@ const status = async (
     is_open,
     is_remote_open,
     is_closed,
-    is_session_closed
+    is_session_closed,
   );
   if (is_open !== is_remote_open) {
     `Open local links doesn't match open remote links: ${is_open} != ${is_remote_open}`;
@@ -140,7 +140,7 @@ const status = async (
  * https://timjansen.github.io/jarfiller/guide/jms/selectors.xhtml
  */
 const mkFilter = (
-  filterClause: string | undefined
+  filterClause: string | undefined,
 ): Source['filter'] | undefined => {
   if (_.isEmpty(filterClause)) {
     return undefined;
@@ -148,7 +148,7 @@ const mkFilter = (
   return {
     'apache.org:selector-filter:string': types.wrap_described(
       filterClause,
-      0x468c00000004
+      0x468c00000004,
     ),
   };
 };
@@ -193,7 +193,7 @@ async function create_links(connection: Connection) {
       log(
         ' [i] subscribe to queue: %s with selector %s',
         receiver_address,
-        selector
+        selector,
       );
     } else {
       log(' [i] subscribe to queue: %s', receiver_address);
@@ -222,11 +222,11 @@ async function create_links(connection: Connection) {
           log(
             " [E] An error occurred for receiver '%s': %O.",
             receiver_address,
-            receiverError
+            receiverError,
           );
         }
         console.warn(
-          `Not recoverable link fatal error for: ${receiver_address}`
+          `Not recoverable link fatal error for: ${receiver_address}`,
         );
         await clean_before_exit(connection);
         process.exit(21);
@@ -236,7 +236,7 @@ async function create_links(connection: Connection) {
       },
       onSessionError: async (context) => {
         console.warn(
-          `Not recoverable session fatal error for: ${receiver_address}`
+          `Not recoverable session fatal error for: ${receiver_address}`,
         );
         await clean_before_exit(connection);
         process.exit(22);
@@ -254,7 +254,7 @@ async function create_links(connection: Connection) {
     };
     try {
       const receiver: Receiver = await connection.createReceiver(
-        receiverOptions
+        receiverOptions,
       );
       links.add(receiver);
     } catch (error) {
@@ -273,15 +273,15 @@ async function broker_connect(): Promise<Connection> {
       _.negate(_.isEmpty)(connectionOptions.host),
       _.negate(_.isEmpty)(failover),
     ]),
-    'Configuration error. Options is required one of: UMB-broker hostname or failover set.'
+    'Configuration error. Options is required one of: UMB-broker hostname or failover set.',
   );
   assert.ok(
     _.negate(_.isEmpty)(connectionOptions.key),
-    'Configuration error. UMB-broker private key is missing'
+    'Configuration error. UMB-broker private key is missing',
   );
   assert.ok(
     _.negate(_.isEmpty)(connectionOptions.cert),
-    'Configuration error. UMB-broker certificate is missing'
+    'Configuration error. UMB-broker certificate is missing',
   );
   /**
    * Implementing failover
@@ -360,25 +360,25 @@ async function broker_connect(): Promise<Connection> {
      */
     log(
       ' [W] Connection: remote peer indicates an error occurred: %O',
-      context.message
+      context.message,
     );
   });
   conn.on(ConnectionEvents.error, (context: EventContext) => {
     log(
       ' [W] Connection: error is received on the underlying socket: %O',
-      context.message
+      context.message,
     );
   });
   conn.on(ConnectionEvents.protocolError, (context: EventContext) => {
     log(
       ' [W] Connection: protocol error is received on the underlying socket: %O',
-      context.message
+      context.message,
     );
   });
   conn.on(ConnectionEvents.settled, (context: EventContext) => {
     log(
       ' [W] Connection: received a disposition (settled): %O',
-      context.message
+      context.message,
     );
   });
   try {
@@ -434,7 +434,7 @@ async function clean_before_exit(connection: Connection) {
 
 async function handle_signal(
   connection: Connection,
-  signal: NodeJS.Signals
+  signal: NodeJS.Signals,
 ): Promise<void> {
   log(`Received: ${signal}. Closing connection to AMQP server.`);
   await clean_before_exit(connection);
@@ -468,7 +468,13 @@ const process_msg = (context: EventContext): void => {
     log(' [x] event with empty message');
     return;
   }
-  const { to: topic, message_id: broker_msg_id, body } = message;
+  const {
+    to: topic,
+    message_id: broker_msg_id,
+    body,
+    correlation_id,
+    application_properties,
+  } = message;
   if (topic === undefined || broker_msg_id === undefined) {
     log(' [x] event with incomplete message');
     return;
@@ -482,7 +488,7 @@ const process_msg = (context: EventContext): void => {
       ' [W] Cannot decode body, skipping message: %s, %s, %O',
       broker_msg_id,
       error,
-      content_str
+      content_str,
     );
     delivery?.accept();
     return;
@@ -499,6 +505,10 @@ const process_msg = (context: EventContext): void => {
     header_timestamp: message?.application_properties?.timestamp,
     provider_name: listener_name,
     provider_timestamp: unix_time,
+    broker_extra: {
+      correlation_id,
+      ...application_properties,
+    },
   };
   fq.push(fqueue, payload_obj).catch((err) => {
     console.warn('Could not store message at file-queue: %s.', err);
@@ -513,7 +523,7 @@ const process_msg = (context: EventContext): void => {
 async function start(): Promise<void> {
   assert.ok(
     _.negate(_.isEmpty)(client_name),
-    'client_name in configuration cannot be empty. It must match CN from certificate subject.'
+    'client_name in configuration cannot be empty. It must match CN from certificate subject.',
   );
   file_queue_path = mkDirParents(file_queue_path_cfg);
   log('File-queue path: %s', file_queue_path);
@@ -526,7 +536,7 @@ async function start(): Promise<void> {
   const status_task = cron.schedule(
     /** running a task every minute */
     '* * * * *',
-    _.partial(status, links, connection)
+    _.partial(status, links, connection),
   );
   log(' [*] To exit press CTRL+C');
 }

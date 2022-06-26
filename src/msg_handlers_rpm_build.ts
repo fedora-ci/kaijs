@@ -100,7 +100,7 @@ payloadHandlers.set(/^.*$/, mkPayloadV1);
 const handlerCommon = async (
   _atype: ArtifactTypes,
   artifacts: Artifacts,
-  fq_msg: FileQueueMessage
+  fq_msg: FileQueueMessage,
 ): Promise<ArtifactModel> => {
   const { broker_msg_id, body } = fq_msg;
   const { artifact } = body;
@@ -126,23 +126,23 @@ const handlerCommon = async (
     log(
       ' [i] handlerCommon adding new state with thread_id: %s, msg_id: %s',
       thread_id,
-      broker_msg_id
+      broker_msg_id,
     );
     db_artifact.states.push(artifact_new_state);
   } else {
     log(
       ' [i] handlerCommon already present state with msg_id: %s, msg_id: %s',
       thread_id,
-      broker_msg_id
+      broker_msg_id,
     );
   }
   db_artifact.payload = _.mergeWith(
     db_artifact.payload,
     newPayload,
-    customMerge
+    customMerge,
   );
   setExpire(db_artifact);
-  log(' [i] handlerCommon updated doc: %s%o', '\n', db_artifact);
+  //log(' [i] handlerCommon updated doc: %s%o', '\n', db_artifact);
   return db_artifact;
 };
 
@@ -157,9 +157,9 @@ export const handlers: THandlersSet = new Map<RegExp, THandler>();
  */
 handlers.set(
   /^org.centos.prod.ci.koji-build.test.(complete|queued|running|error)$/,
-  handlerKojiCommon
+  handlerKojiCommon,
 );
 handlers.set(
   /^VirtualTopic\.eng\.ci(\.[\w-]+)?\.brew-build\.test\.(complete|queued|running|error)$/,
-  handlerBrewCommon
+  handlerBrewCommon,
 );

@@ -51,6 +51,8 @@ const schema_fq_msg = Joi.object({
   header_timestamp: Joi.date().timestamp(),
   /** Payload of message */
   body: Joi.object().required(),
+  /** Message headers */
+  broker_extra: Joi.object(),
 });
 
 const schema_koji_build_info = Joi.object({
@@ -205,13 +207,13 @@ export const schemas = _.merge(
   schemas_db,
   schemas_koji,
   schemas_broker,
-  schemas_gate_tag
+  schemas_gate_tag,
 );
 
 export type SchemaName = keyof typeof schemas;
 
 const get_schema_name = (
-  schema_name_pattern: string
+  schema_name_pattern: string,
 ): SchemaName | undefined => {
   if (_.has(schemas, schema_name_pattern)) {
     return schema_name_pattern as SchemaName;
@@ -245,7 +247,7 @@ export function assert_is_valid(obj: any, schema_name: string) {
       " [E] object doesn't comply with schema: %s%s%o",
       schema_name,
       '\n',
-      obj
+      obj,
     );
     metrics_up_parse(schema_name, 'err');
     throw parse_err;
@@ -272,7 +274,7 @@ export function assert_is_valid(obj: any, schema_name: string) {
  * 2) sctrict schema validation for messages with: version = x.y.z, where x != 0
  */
 export const assertMsgIsValid = async (
-  message: FileQueueMessage
+  message: FileQueueMessage,
 ): Promise<void> => {
   const { broker_topic, broker_msg_id } = message;
   const isCIMessage = _.includes(broker_topic, '.ci.');
@@ -280,7 +282,7 @@ export const assertMsgIsValid = async (
     const version: string | undefined = _.get(message.body, 'version');
     if (_.isUndefined(version) || _.isEmpty(version)) {
       throw new WrongVersionError(
-        `Message: ${broker_msg_id}, missing 'version' entry.`
+        `Message: ${broker_msg_id}, missing 'version' entry.`,
       );
     }
     const strictValidation = !_.startsWith(version, '0.');

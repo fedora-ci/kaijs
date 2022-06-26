@@ -52,6 +52,8 @@ export interface FileQueueMessage {
   header_timestamp?: number;
   /** Payload of message */
   body: any;
+  /** Message headers */
+  broker_extra: any;
 }
 
 async function make(path: string) {
@@ -74,7 +76,7 @@ async function make(path: string) {
           queue.maildir.emit('new');
         }, 1000 * 60);
         resolve(queue);
-      }
+      },
     );
   });
 }
@@ -109,7 +111,7 @@ async function tpop(fqueue: any): Promise<any> {
       err: Error,
       message: any,
       commit: any,
-      rollback: any
+      rollback: any,
     ) {
       if (err) return reject(err);
       resolve({ message, commit, rollback });

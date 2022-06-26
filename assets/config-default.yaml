@@ -66,8 +66,6 @@ listener:
 loader:
   db:
     db_name: 'ci-messages'
-    db_collection_artifacts: 'artifacts'
-    db_collection_invalid: 'validation-errors'
     # http://mongodb.github.io/node-mongodb-native/3.5/api/MongoClient.html
     # https://docs.mongodb.com/manual/reference/method/db.collection.createIndex/#option-for-collation#
     db_url: ~
@@ -208,6 +206,13 @@ loader:
               broker_topic: 1
             options:
               name: 'broker_topic_v1'
+      raw_messages:
+        name: 'raw-messages'
+        indexes:
+          - keys:
+              broker_msg_id: 1
+            options:
+              name: 'broker_msg_id_v1'
 
   file_queue_path: 'messages-queue'
   schemas_git_upstream: 'https://pagure.io/fedora-ci/messages.git'

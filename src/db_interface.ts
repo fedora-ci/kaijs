@@ -257,6 +257,22 @@ export interface ValidationErrorsModel {
   expire_at: Date;
 }
 
+export interface RawMessagesModel {
+  _id?: ObjectId;
+  /** Time stamp */
+  timestamp: number;
+  /** A string representing the time portion of the given date in human readable form in English. */
+  time: string;
+  /** Message from broker */
+  broker_msg: any;
+  /** Broker topic */
+  broker_topic: string;
+  /** Broker message id */
+  broker_msg_id: string;
+  /** Message headers */
+  broker_extra: any;
+}
+
 export interface UnknownBrokerTopicModel {
   _id?: ObjectId;
   /** Time stamp */

@@ -1,7 +1,7 @@
 /*
  * This file is part of kaijs
 
- * Copyright (c) 2021 Andrei Stepanov <astepano@redhat.com>
+ * Copyright (c) 2021, 2022 Andrei Stepanov <astepano@redhat.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,6 +39,7 @@ import {
 import { metrics_up_broker } from './metrics';
 import {
   ArtifactModel,
+  RawMessagesModel,
   ValidationErrorsModel,
   UnknownBrokerTopicModel,
 } from './db_interface';
@@ -67,7 +68,7 @@ function on_timeout(err: MongoError): void {
 
 function on_parseError(err: MongoError): void {
   console.warn(
-    `db driver detects illegal or corrupt BSON being received from the server: ${err}`
+    `db driver detects illegal or corrupt BSON being received from the server: ${err}`,
   );
   process.exit(1);
 }
@@ -96,7 +97,7 @@ class DBCollection {
     url?: string,
     collection_name?: string,
     db_name?: string,
-    options?: MongoClientOptions
+    options?: MongoClientOptions,
   ) {
     this.cfg_entry = cfg_entry;
     this.url = url || cfg.loader.db.db_url;
@@ -132,7 +133,7 @@ class DBCollection {
         await this.db.createCollection(this.collection_name);
       }
       this.collection = this.db.collection<ValidationErrorsModel>(
-        this.collection_name
+        this.collection_name,
       );
       this.log('Connected successfully to collection.');
       /** Db is no longer the place to listen to events, you should listen to your MongoClient. */
@@ -158,8 +159,8 @@ class DBCollection {
     const keep = preserve.concat(
       _.map(
         indexes_config,
-        _.flow(_.identity, _.partialRight(_.get, 'options.name'))
-      )
+        _.flow(_.identity, _.partialRight(_.get, 'options.name')),
+      ),
     );
     if (_.size(indexes_active)) {
       for (const index of indexes_active) {
@@ -183,8 +184,8 @@ class DBCollection {
           _.flow(
             _.identity,
             _.partialRight(_.get, 'name'),
-            _.partialRight(_.isEqual, name)
-          )
+            _.partialRight(_.isEqual, name),
+          ),
         ) >= 0;
       if (is_present) {
         this.log('Index is already present: %s', name);
@@ -226,14 +227,14 @@ export class ValidationErrors extends DBCollection {
     url?: string,
     collection_name?: string,
     db_name?: string,
-    options?: MongoClientOptions
+    options?: MongoClientOptions,
   ) {
     super('invalid', collection_name, url, db_name, options);
   }
 
   async add_to_db(
     fq_msg: FileQueueMessage,
-    err: Joi.ValidationError | WrongVersionError
+    err: Joi.ValidationError | WrongVersionError,
   ): Promise<void> {
     const expire_at = new Date();
     var keep_days = 15;
@@ -267,18 +268,93 @@ export class ValidationErrors extends DBCollection {
 /**
  * Operates on mongodb collection
  */
+export class RawMessages extends DBCollection {
+  constructor(
+    url?: string,
+    collection_name?: string,
+    db_name?: string,
+    options?: MongoClientOptions,
+  ) {
+    super('raw_messages', collection_name, url, db_name, options);
+  }
+
+  async findOrCreate(document: RawMessagesModel): Promise<void> {
+    if (_.isUndefined(this.collection)) {
+      throw new Error('Connection is not initialized');
+    }
+    /** http://mongodb.github.io/node-mongodb-native/3.6/api/Collection.html#findOneAndUpdate */
+    this.log(
+      'Store mongodb document for msgID %s if absent',
+      document.broker_msg_id,
+    );
+    var added = new Date().toISOString();
+    const { broker_msg_id } = document;
+    try {
+      await this.collection.findOneAndUpdate(
+        /** query / filter */
+        { broker_msg_id },
+        /** update */
+        {
+          $setOnInsert: { ...document, _added: added },
+        },
+        /** options */
+        {
+          /** insert the document if it does not exist */
+          upsert: true,
+        },
+      );
+    } catch (err) {
+      /**
+       * Can throw an exception when user does not have RO permissions
+       */
+      this.fail('findOrCreate() failed for message: %s:', broker_msg_id);
+      throw err;
+    }
+  }
+
+  async add_to_db(fq_msg: FileQueueMessage): Promise<void> {
+    const expire_at = new Date();
+    var keep_days = 15;
+    expire_at.setDate(expire_at.getDate() + keep_days);
+    const document: RawMessagesModel = {
+      timestamp: Date.now(),
+      time: new Date().toString(),
+      broker_msg: fq_msg.body,
+      broker_topic: fq_msg.broker_topic,
+      broker_msg_id: fq_msg.broker_msg_id,
+      broker_extra: fq_msg.broker_extra,
+    };
+    /**
+     * Mongodb doesn't allow to have dots in keys in document, therefor we replace all dots with `_`:
+     * https://stackoverflow.com/questions/9759972/what-characters-are-not-allowed-in-mongodb-field-names
+     */
+    document.broker_msg = deepMapKeys(document.broker_msg, (_v, k) => {
+      return k.replace(/[$\.]/g, '_');
+    });
+    try {
+      await this.findOrCreate(document);
+    } catch (err) {
+      this.fail('Cannot store broker message %s.', document.broker_msg_id);
+      throw err;
+    }
+  }
+}
+
+/**
+ * Operates on mongodb collection
+ */
 export class UnknownBrokerTopics extends DBCollection {
   constructor(
     url?: string,
     collection_name?: string,
     db_name?: string,
-    options?: MongoClientOptions
+    options?: MongoClientOptions,
   ) {
     super('no_handler', collection_name, url, db_name, options);
   }
   async add_to_db(
     fq_msg: FileQueueMessage,
-    err: NoAssociatedHandlerError
+    err: NoAssociatedHandlerError,
   ): Promise<void> {
     const expire_at = new Date();
     var keep_days = 15;
@@ -308,7 +384,7 @@ export class Artifacts extends DBCollection {
     url?: string,
     collection_name?: string,
     db_name?: string,
-    options?: MongoClientOptions
+    options?: MongoClientOptions,
   ) {
     super('artifacts', collection_name, url, db_name, options);
   }
@@ -337,7 +413,7 @@ export class Artifacts extends DBCollection {
           upsert: true,
           /** Indexes created with collation */
           collation: { locale: 'en_US', numericOrdering: true },
-        }
+        },
       );
     } catch (err) {
       /**
@@ -347,13 +423,6 @@ export class Artifacts extends DBCollection {
       throw err;
     }
     const { value: document, lastErrorObject, ok } = result;
-    this.log(
-      'Document for type: %s and aid: %s is:%s%O',
-      type,
-      aid,
-      '\n',
-      document
-    );
     /**
      * On success:
      *
@@ -401,14 +470,13 @@ export class Artifacts extends DBCollection {
         const old_value = _.get(present, old_path_lodash);
         const drop = _.isEqual(new_value, old_value);
         return drop;
-      }
+      },
     );
     const pairs = _.map(
       paths_update,
-      _.unary(_.over(_.identity, _.partial(_.get, newdata)))
+      _.unary(_.over(_.identity, _.partial(_.get, newdata))),
     );
     const updateSet = _.fromPairs(pairs);
-    log(' [i] update set: %O', updateSet);
     return updateSet;
   }
 
@@ -470,7 +538,7 @@ export class Artifacts extends DBCollection {
         this.log(
           'Update set is empty for type: %s aid: %s. Do not update document.',
           type,
-          aid
+          aid,
         );
         return artifact;
       }
@@ -501,7 +569,7 @@ export class Artifacts extends DBCollection {
         /** Contains true if an update operation modified an existing document. */
         assert.ok(
           lastErrorObject.updatedExisting === true,
-          'Error to upate existing artifact document with new values'
+          'Error to upate existing artifact document with new values',
         );
         modifiedDocument = value;
       } catch (err) {
@@ -513,7 +581,7 @@ export class Artifacts extends DBCollection {
             'Cannot update db. Retries left: %s:%s%s',
             retries_left,
             '\n',
-            err.message
+            err.message,
           );
         } else {
           throw err;
@@ -524,7 +592,7 @@ export class Artifacts extends DBCollection {
       }
     }
     throw new Error(
-      `Cannot set missing fields for type: ${artifact.type} and aid: ${artifact.aid}. All attempts failed.`
+      `Cannot set missing fields for type: ${artifact.type} and aid: ${artifact.aid}. All attempts failed.`,
     );
   }
 
@@ -546,7 +614,7 @@ export class Artifacts extends DBCollection {
       this.fail(
         'Cannot update DB for message-id: %s and broker-topic: %s',
         broker_msg_id,
-        broker_topic
+        broker_topic,
       );
       throw err;
     }
@@ -558,13 +626,15 @@ export async function get_collection(
   url?: string,
   collection_name?: string,
   db_name?: string,
-  options?: MongoClientOptions
+  options?: MongoClientOptions,
 ): Promise<Artifacts | ValidationErrors | UnknownBrokerTopics> {
   var Class;
   if (name === 'artifacts') {
     Class = Artifacts;
   } else if (name === 'invalid') {
     Class = ValidationErrors;
+  } else if (name === 'raw_messages') {
+    Class = RawMessages;
   } else if (name === 'no_handler') {
     Class = UnknownBrokerTopics;
   } else {
