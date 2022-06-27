@@ -39,7 +39,7 @@ import {
   get_collection,
   RawMessages,
 } from './db';
-import { schemas } from './validation';
+import { schemas, NoValidationSchemaError } from './validation';
 import { WrongVersionError } from './validation_broker';
 import { metrics_up_fq, metrics_up_parse } from './metrics';
 import { AJVValidationError } from './validation_ajv';
@@ -155,35 +155,13 @@ async function start(): Promise<never> {
       fq_length,
     );
     try {
-      await raw_messages.add_to_db(fq_msg);
-    } catch (err) {
-      if (_.isError(err)) {
-        console.warn(
-          ' [E] Cannot store raw message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
-          fq_msg.broker_msg_id,
-          fq_msg.fq_msg_id,
-          err.message,
-        );
-        /** At this point message stays un-acked at file-queue */
-        log(
-          ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
-          fq_msg.broker_msg_id,
-        );
-        fq_rollback((err: Error) => {
-          if (err) throw err;
-        });
-        /**
-         * Exit from programm.
-         */
-        process.exit(1);
-      }
-    }
-    try {
       await artifacts.add_to_db(fq_msg);
+      await raw_messages.add_to_db(fq_msg);
     } catch (err) {
       if (
         err instanceof Joi.ValidationError ||
         err instanceof WrongVersionError ||
+        err instanceof NoValidationSchemaError ||
         err instanceof AJVValidationError
       ) {
         /**

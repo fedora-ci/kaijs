@@ -230,6 +230,16 @@ const get_schema_name = (
   return found_key as SchemaName | undefined;
 };
 
+export class NoValidationSchemaError extends Error {
+  constructor(message: string) {
+    super(message);
+    /**
+     * Set the prototype explicitly.
+     */
+    Object.setPrototypeOf(this, NoValidationSchemaError.prototype);
+  }
+}
+
 export function assert_is_valid(obj: any, schema_name: string) {
   /**
    * Consider keys from `schemas` as a first parameter to RegExp() if they are enclosed in `//`
@@ -237,7 +247,7 @@ export function assert_is_valid(obj: any, schema_name: string) {
    */
   const key_in_schemas: SchemaName | undefined = get_schema_name(schema_name);
   if (_.isUndefined(key_in_schemas)) {
-    throw new Error(`Cannot find shema for: ${schema_name}`);
+    throw new NoValidationSchemaError(`Cannot find shema for: ${schema_name}`);
   }
   const parse_err = _.attempt(Joi.assert, obj, schemas[key_in_schemas], {
     allowUnknown: true,
