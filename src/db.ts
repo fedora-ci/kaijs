@@ -213,7 +213,7 @@ type TKeyChangerFunction = (value: any, key: string) => string;
 const deepMapKeys = function (obj: any, fn: TKeyChangerFunction) {
   var x: { [key: string]: any } = {};
   _.forOwn(obj, function (v, k) {
-    if (_.isPlainObject(v)) v = deepMapKeys(v, fn);
+    if (_.isObjectLike(v)) v = deepMapKeys(v, fn);
     x[fn(v, k)] = v;
   });
   return x;
