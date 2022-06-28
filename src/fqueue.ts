@@ -23,6 +23,7 @@
  */
 
 import _ from 'lodash';
+import fs from 'fs';
 import debug from 'debug';
 const graceful_fs = require('graceful-fs');
 const { Queue } = require('file-queue');
@@ -56,7 +57,7 @@ export interface FileQueueMessage {
   broker_extra?: any;
 }
 
-async function make(path: string) {
+async function make(path: string, opts = { poll: false, optimizeList: false }) {
   return new Promise((resolve, reject) => {
     var queue = new Queue(
       {
@@ -71,10 +72,37 @@ async function make(path: string) {
          * https://github.com/threez/file-queue/blob/6f2bfa60fda2205801ca1c558f4cfc1536e8825c/queue.js#L28
          * function(messages) {} - ignores its argument and checks actual presence of messages.
          */
-        setInterval(() => {
-          log('[i] polling-tick to check new messages');
-          queue.maildir.emit('new');
-        }, 1000 * 60);
+        if (opts.poll) {
+          log(' [i] enable polling for new messages');
+          setInterval(() => {
+            log(' [i] polling-tick to check new messages');
+            queue.maildir.emit('new');
+          }, 1000 * 60);
+        }
+        if (opts.optimizeList) {
+          /*
+           * https://github.com/threez/file-queue/issues/6
+           */
+          log(' [i] file-queue: hijack listNew method.');
+          queue.maildir.listNew = function (
+            callback: (err: Error | null, files?: string[] | null) => {},
+          ) {
+            let len = 32;
+            const NEW = 1;
+            const files: string[] = [];
+            const dir = fs.opendirSync(queue.maildir.dirPaths[NEW]);
+            while (len) {
+              const file = dir.readSync();
+              if (!file) {
+                break;
+              }
+              files.push(file.name);
+              len--;
+            }
+            dir.closeSync();
+            callback(null, files);
+          };
+        }
         resolve(queue);
       },
     );

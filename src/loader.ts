@@ -84,7 +84,7 @@ async function handle_signal(
 async function start(): Promise<never> {
   file_queue_path = mkDirParents(file_queue_path_cfg);
   log('File-queue path: %s', file_queue_path);
-  fqueue = await fq.make(file_queue_path);
+  fqueue = await fq.make(file_queue_path, { poll: true, optimizeList: true });
   log('File-queue length at start: %s', await fq.length(fqueue));
   var artifacts: Artifacts;
   var validation_errors: ValidationErrors;
@@ -148,11 +148,13 @@ async function start(): Promise<never> {
       );
       continue;
     }
-    const fq_length = await fq.length(fqueue);
+    /*
+     * const fq_length = await fq.length(fqueue);
+     * Do not do this: it is not efficient on large number of files.
+     */
     log(
-      ' [i] Adding message to DB with file-queue message id %O. Remain unprocessed messages: %s',
+      ' [i] Adding message to DB with file-queue message id %O.',
       fq_msg.fq_msg_id,
-      fq_length,
     );
     try {
       await artifacts.add_to_db(fq_msg);
