@@ -32,13 +32,7 @@ import {
 import { getcfg, mkDirParents } from './cfg';
 import { getAllSchemas } from './get_schema';
 import { NoAssociatedHandlerError } from './msg_handlers';
-import {
-  Artifacts,
-  ValidationErrors,
-  UnknownBrokerTopics,
-  get_collection,
-  RawMessages,
-} from './db';
+import { Artifacts, ValidationErrors, get_collection, RawMessages } from './db';
 import { schemas, NoValidationSchemaError } from './validation';
 import { WrongVersionError } from './validation_broker';
 import { metrics_up_fq, metrics_up_parse } from './metrics';
@@ -88,12 +82,10 @@ async function start(): Promise<never> {
   log('File-queue length at start: %s', await fq.length(fqueue));
   var artifacts: Artifacts;
   var validation_errors: ValidationErrors;
-  var no_handlers: UnknownBrokerTopics;
   var raw_messages: RawMessages;
   try {
     artifacts = (await get_collection('artifacts')) as Artifacts;
     validation_errors = (await get_collection('invalid')) as ValidationErrors;
-    no_handlers = (await get_collection('no_handler')) as UnknownBrokerTopics;
     raw_messages = (await get_collection('raw_messages')) as RawMessages;
   } catch (error) {
     console.warn('Whoops! Cannot connect to db.', error);
@@ -164,6 +156,7 @@ async function start(): Promise<never> {
         err instanceof Joi.ValidationError ||
         err instanceof WrongVersionError ||
         err instanceof NoValidationSchemaError ||
+        err instanceof NoAssociatedHandlerError ||
         err instanceof AJVValidationError
       ) {
         /**
@@ -204,32 +197,6 @@ async function start(): Promise<never> {
              * Exit from programm.
              */
             process.exit(1);
-          } else {
-            throw err;
-          }
-        }
-      } else if (err instanceof NoAssociatedHandlerError) {
-        /**
-         * Store message that doesn't have associated handler
-         */
-        log(' [E] %s', err.message);
-        log(
-          ' [E] Store message to no-handler db. Broker msg-id: %s, file-queue message-id: %s.',
-          fq_msg.broker_msg_id,
-          fq_msg.fq_msg_id,
-        );
-        metrics_up_fq('nack');
-        try {
-          await no_handlers.add_to_db(fq_msg, err);
-        } catch (err) {
-          /** The message  */
-          if (_.isError(err)) {
-            console.warn(
-              ' [E] Cannot store invalid message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
-              fq_msg.broker_msg_id,
-              fq_msg.fq_msg_id,
-              err.message,
-            );
           } else {
             throw err;
           }

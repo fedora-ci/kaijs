@@ -41,12 +41,16 @@ import {
   ArtifactModel,
   RawMessagesModel,
   ValidationErrorsModel,
-  UnknownBrokerTopicModel,
 } from './db_interface';
 import { getHandler, NoAssociatedHandlerError } from './msg_handlers';
-import { assertMsgIsValid, assert_is_valid } from './validation';
+import {
+  assertMsgIsValid,
+  assert_is_valid,
+  NoValidationSchemaError,
+} from './validation';
 import { WrongVersionError } from './validation_broker';
 import { FileQueueMessage } from './fqueue';
+import { AJVValidationError } from './validation_ajv';
 
 const log = debug('kaijs:db');
 const cfg = getcfg();
@@ -234,7 +238,12 @@ export class ValidationErrors extends DBCollection {
 
   async add_to_db(
     fq_msg: FileQueueMessage,
-    err: Joi.ValidationError | WrongVersionError,
+    err:
+      | Joi.ValidationError
+      | WrongVersionError
+      | NoValidationSchemaError
+      | NoAssociatedHandlerError
+      | AJVValidationError,
   ): Promise<void> {
     const expire_at = new Date();
     var keep_days = 15;
@@ -335,42 +344,6 @@ export class RawMessages extends DBCollection {
       await this.findOrCreate(document);
     } catch (err) {
       this.fail('Cannot store broker message %s.', document.broker_msg_id);
-      throw err;
-    }
-  }
-}
-
-/**
- * Operates on mongodb collection
- */
-export class UnknownBrokerTopics extends DBCollection {
-  constructor(
-    url?: string,
-    collection_name?: string,
-    db_name?: string,
-    options?: MongoClientOptions,
-  ) {
-    super('no_handler', collection_name, url, db_name, options);
-  }
-  async add_to_db(
-    fq_msg: FileQueueMessage,
-    err: NoAssociatedHandlerError,
-  ): Promise<void> {
-    const expire_at = new Date();
-    var keep_days = 15;
-    expire_at.setDate(expire_at.getDate() + keep_days);
-    const document: UnknownBrokerTopicModel = {
-      timestamp: Date.now(),
-      time: new Date().toString(),
-      broker_msg: fq_msg.body,
-      broker_topic: err.broker_topic,
-      expire_at,
-    };
-    try {
-      await this.collection?.insertOne(document);
-      this.log('Stored invalid object');
-    } catch (err) {
-      this.fail('Cannot store invalid object.');
       throw err;
     }
   }
@@ -627,7 +600,7 @@ export async function get_collection(
   collection_name?: string,
   db_name?: string,
   options?: MongoClientOptions,
-): Promise<Artifacts | ValidationErrors | UnknownBrokerTopics> {
+): Promise<Artifacts | ValidationErrors | RawMessages> {
   var Class;
   if (name === 'artifacts') {
     Class = Artifacts;
@@ -635,8 +608,6 @@ export async function get_collection(
     Class = ValidationErrors;
   } else if (name === 'raw_messages') {
     Class = RawMessages;
-  } else if (name === 'no_handler') {
-    Class = UnknownBrokerTopics;
   } else {
     throw new Error('Unknown collection name.');
   }

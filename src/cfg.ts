@@ -224,10 +224,6 @@ export interface Cfg {
           name: string;
           indexes: [{ keys: any; options: any }];
         };
-        no_handler: {
-          name: string;
-          indexes: [{ keys: any; options: any }];
-        };
         raw_messages: {
           name: string;
           indexes: [{ keys: any; options: any }];

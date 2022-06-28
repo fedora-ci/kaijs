@@ -89,113 +89,106 @@ loader:
               type: 1
               aid: -1
             options:
-              name: 'type_aid_us'
+              name: 'type_aid_us_v1'
               collation:
                 locale: 'en_US'
                 numericOrdering: true
+          - keys:
+              type: 1
+              aid: -1
+            options:
+              name: 'type_aid_v1'
           # type "productmd-compose"
           - keys:
               type: 1
               payload.compose_id: 1
             options:
-              name: 'payload_compose_id'
+              name: 'payload_compose_id_v1'
           - keys:
               type: 1
               payload.compose_type: 1
             options:
-              name: 'payload_compose_type'
+              name: 'payload_compose_type_v1'
           - keys:
               type: 1
               payload.release_type: 1
             options:
-              name: 'payload_release_type'
+              name: 'payload_release_type_v1'
           # type "brew-build"
           - keys:
               type: 1
               payload.task_id: 1
             options:
-              name: 'payload_task_id'
+              name: 'payload_task_id_v1'
           - keys:
               type: 1
               payload.nvr: 1
             options:
-              name: 'payload_nvr'
+              name: 'payload_nvr_v1'
           - keys:
               type: 1
               payload.source: 1
             options:
-              name: 'payload_source'
+              name: 'payload_source_v1'
           - keys:
               type: 1
               payload.issuer: 1
             options:
-              name: 'payload_issuer'
+              name: 'payload_issuer_v1'
           - keys:
               type: 1
               payload.scratch: 1
             options:
-              name: 'payload_scratch'
+              name: 'payload_scratch_v1'
           - keys:
               type: 1
               payload.component: 1
             options:
-              name: 'payload_component'
+              name: 'payload_component_v1'
           - keys:
               type: 1
               payload.gate_tag_name: 1
             options:
-              name: 'payload_tag_name'
+              name: 'payload_tag_name_v1'
           - keys:
               type: 1
               payload.build_id: 1
             options:
               type: 1
-              name: 'payload_build_id'
+              name: 'payload_build_id_v1'
           # type: "redhat-module", nvr, issuer, scratch, source, gate_tag_name
           - keys:
               type: 1
               payload.mbs_id: 1
             options:
-              name: 'payload_mbs_id'
+              name: 'payload_mbs_id_v1'
           - keys:
               type: 1
               payload.nsvc: 1
             options:
-              name: 'payload_nsvc'
+              name: 'payload_nsvc_v1'
           - keys:
               type: 1
               payload.name: 1
             options:
-              name: 'payload_name'
+              name: 'payload_name_v1'
           - keys:
               type: 1
               payload.stream: 1
             options:
-              name: 'payload_stream'
+              name: 'payload_stream_v1'
           - keys:
               type: 1
               payload.version: 1
             options:
-              name: 'payload_version'
+              name: 'payload_version_v1'
           - keys:
               type: 1
               payload.context: 1
             options:
-              name: 'payload_context'
+              name: 'payload_context_v1'
       invalid:
         name: 'validation-errors'
-        indexes:
-          - keys:
-              expire_at: 1
-            options:
-              name: 'expire_at_v1'
-              expireAfterSeconds: 0
-          - keys:
-              broker_topic: 1
-            options:
-              name: 'broker_topic_v1'
-      no_handler:
-        name: 'no-handler'
         indexes:
           - keys:
               expire_at: 1
