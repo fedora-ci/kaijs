@@ -92,7 +92,18 @@ async function make(path: string, opts = { poll: false, optimizeList: false }) {
             const files: string[] = [];
             const dir = fs.opendirSync(queue.maildir.dirPaths[NEW]);
             while (len) {
-              const file = dir.readSync();
+              let file;
+              try {
+                file = dir.readSync();
+              } catch (err) {
+                const code = _.get(err, 'code');
+                if (code === 'ENOENT') {
+                  /* file was stealed by other runner */
+                  break;
+                } else {
+                  throw err;
+                }
+              }
               if (!file) {
                 break;
               }
