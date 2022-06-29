@@ -208,13 +208,27 @@ class DBCollection {
       throw err;
     }
   }
+
+  printify(obj: any): string {
+    var cache: any[] = [];
+    function circular_ok(key: string, value: any) {
+      if (typeof value === 'object' && value !== null) {
+        if (cache.indexOf(value) !== -1) {
+          return;
+        }
+        cache.push(value);
+      }
+      return value;
+    }
+    return JSON.stringify(obj, circular_ok, 2);
+  }
 }
 
 /**
  * https://stackoverflow.com/questions/35055731/how-to-deeply-map-object-keys-with-javascript-lodash
  */
-type TKeyChangerFunction = (value: any, key: string) => string;
-const deepMapKeys = function (obj: any, fn: TKeyChangerFunction) {
+export type TKeyChangerFunction = (value: any, key: string) => string;
+export const deepMapKeys = function (obj: any, fn: TKeyChangerFunction) {
   var x: { [key: string]: any } = {};
   _.forOwn(obj, function (v, k) {
     if (_.isObjectLike(v)) v = deepMapKeys(v, fn);
@@ -248,22 +262,19 @@ export class ValidationErrors extends DBCollection {
     const expire_at = new Date();
     var keep_days = 15;
     expire_at.setDate(expire_at.getDate() + keep_days);
+    let broker_msg = this.printify(fq_msg.body);
+    const size: number = Buffer.byteLength(broker_msg, 'utf8');
+    if (size > 17800000) {
+      broker_msg = 'Message is bigger then 16Mb. Cannot store.';
+    }
     const document: ValidationErrorsModel = {
-      timestamp: Date.now(),
-      time: new Date().toString(),
-      broker_msg: fq_msg.body,
+      _added: new Date().toISOString(),
+      broker_msg,
       errmsg: err instanceof Joi.ValidationError ? err.details : err.message,
       expire_at,
       broker_topic: fq_msg.broker_topic,
       broker_msg_id: fq_msg.broker_msg_id,
     };
-    /**
-     * Mongodb doesn't allow to have dots in keys in document, therefor we replace all dots with `_`:
-     * https://stackoverflow.com/questions/9759972/what-characters-are-not-allowed-in-mongodb-field-names
-     */
-    document.broker_msg = deepMapKeys(document.broker_msg, (_v, k) => {
-      return k.replace(/[$\.]/g, '_');
-    });
     try {
       await this.collection?.insertOne(document);
       this.log('Stored invalid object');
@@ -325,21 +336,18 @@ export class RawMessages extends DBCollection {
     const expire_at = new Date();
     var keep_days = 15;
     expire_at.setDate(expire_at.getDate() + keep_days);
+    let broker_msg = this.printify(fq_msg.body);
+    const size: number = Buffer.byteLength(broker_msg, 'utf8');
+    if (size > 17800000) {
+      broker_msg = 'Message is bigger then 16Mb. Cannot store.';
+    }
     const document: RawMessagesModel = {
-      timestamp: Date.now(),
-      time: new Date().toString(),
-      broker_msg: fq_msg.body,
+      _added: new Date().toISOString(),
+      broker_msg,
       broker_topic: fq_msg.broker_topic,
       broker_msg_id: fq_msg.broker_msg_id,
       broker_extra: fq_msg.broker_extra,
     };
-    /**
-     * Mongodb doesn't allow to have dots in keys in document, therefor we replace all dots with `_`:
-     * https://stackoverflow.com/questions/9759972/what-characters-are-not-allowed-in-mongodb-field-names
-     */
-    document.broker_msg = deepMapKeys(document.broker_msg, (_v, k) => {
-      return k.replace(/[$\.]/g, '_');
-    });
     try {
       await this.findOrCreate(document);
     } catch (err) {

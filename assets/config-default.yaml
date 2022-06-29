@@ -98,6 +98,10 @@ loader:
               aid: -1
             options:
               name: 'type_aid_v1'
+          - keys:
+              _updated: -1
+            options:
+              name: 'updated_v1'
           # type "productmd-compose"
           - keys:
               type: 1
@@ -199,6 +203,8 @@ loader:
               broker_topic: 1
             options:
               name: 'broker_topic_v1'
+          - keys:
+              _added: -1
       raw_messages:
         name: 'raw-messages'
         indexes:
@@ -206,6 +212,8 @@ loader:
               broker_msg_id: 1
             options:
               name: 'broker_msg_id_v1'
+          - keys:
+              _added: -1
 
   file_queue_path: 'messages-queue'
   schemas_git_upstream: 'https://pagure.io/fedora-ci/messages.git'

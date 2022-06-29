@@ -145,6 +145,7 @@ export interface ArtifactState {
    */
   kai_state: KaiState;
   broker_msg_body: any;
+  broker_extra?: any;
 }
 
 export interface PayloadBrewBuild {
@@ -241,10 +242,8 @@ export interface ArtifactModel {
 
 export interface ValidationErrorsModel {
   _id?: ObjectId;
-  /** Time stamp */
-  timestamp: number;
   /** A string representing the time portion of the given date in human readable form in English. */
-  time: string;
+  _added: string;
   /** Error message */
   errmsg: Joi.ValidationErrorItem[] | string;
   /** Message from broker */
@@ -259,10 +258,8 @@ export interface ValidationErrorsModel {
 
 export interface RawMessagesModel {
   _id?: ObjectId;
-  /** Time stamp */
-  timestamp: number;
   /** A string representing the time portion of the given date in human readable form in English. */
-  time: string;
+  _added: string;
   /** Message from broker */
   broker_msg: any;
   /** Broker topic */
@@ -271,18 +268,4 @@ export interface RawMessagesModel {
   broker_msg_id: string;
   /** Message headers */
   broker_extra?: any;
-}
-
-export interface UnknownBrokerTopicModel {
-  _id?: ObjectId;
-  /** Time stamp */
-  timestamp: number;
-  /** A string representing the time portion of the given date in human readable form in English. */
-  time: string;
-  /** Broker topic that doesn't have associated handler */
-  broker_topic: string;
-  /** Message from broker */
-  broker_msg: any;
-  /** When the mongodb-document will be auto-removed */
-  expire_at: Date;
 }

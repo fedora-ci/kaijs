@@ -179,7 +179,7 @@ async function start(): Promise<never> {
         } catch (err) {
           /** The message  */
           if (_.isError(err)) {
-            console.warn(
+            log(
               ' [E] Cannot store invalid message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
               fq_msg.broker_msg_id,
               fq_msg.fq_msg_id,
@@ -203,7 +203,7 @@ async function start(): Promise<never> {
         }
       } else {
         if (_.isError(err)) {
-          console.warn(
+          log(
             ' [E] Cannot update DB with received message.',
             `File-queue message id: ${fq_msg.fq_msg_id}`,
             'Error is:',

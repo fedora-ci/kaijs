@@ -28,7 +28,7 @@ import {
   ArtifactState,
   ArtifactModel,
 } from './db_interface';
-import { Artifacts } from './db';
+import { Artifacts, deepMapKeys } from './db';
 import { FileQueueMessage } from './fqueue';
 import { assert_is_valid } from './validation';
 import { handlers as handlersMBS } from './msg_handlers_mbs';
@@ -42,7 +42,7 @@ const log = debug('kaijs:msg_handlers');
 export type TGetPayload = (body: any) => TPayload;
 export type THandler = (
   artifacts: Artifacts,
-  fq_msg: FileQueueMessage
+  fq_msg: FileQueueMessage,
 ) => Promise<ArtifactModel>;
 export type THandlersSet = Map<RegExp, THandler>;
 export type TPayloadHandlersSet = Map<RegExp, TGetPayload>;
@@ -90,13 +90,13 @@ const mkThreadId = (fq_msg: FileQueueMessage) => {
   const thread_id_v_0_1 = _.get(body, 'thread_id');
   const thread_id = _.find(
     [thread_id_v_1, thread_id_v_0_1],
-    _.flow(_.identity, _.overEvery([_.negate(_.isEmpty), _.isString]))
+    _.flow(_.identity, _.overEvery([_.negate(_.isEmpty), _.isString])),
   );
   if (thread_id) {
     log(
       ' [i] take a thread id for msg-id %s from message: %s',
       broker_msg_id,
-      thread_id
+      thread_id,
     );
     return thread_id;
   }
@@ -115,7 +115,7 @@ const mkThreadId = (fq_msg: FileQueueMessage) => {
   }
   if (_.isEmpty(hashAnchorParts)) {
     throw new NoThreadIdError(
-      `Cannot make thread-id for broker msg-id: ${broker_msg_id}`
+      `Cannot make thread-id for broker msg-id: ${broker_msg_id}`,
     );
   }
   /**
@@ -183,7 +183,7 @@ const makeTestCaseName = (body: any): string => {
 
 /** Messages can be for different stages: test / build */
 export const makeState = (fq_msg: FileQueueMessage): ArtifactState => {
-  const { broker_topic, broker_msg_id, body } = fq_msg;
+  const { broker_topic, broker_msg_id, body, broker_extra } = fq_msg;
   var thread_id = mkThreadId(fq_msg);
   var msg_id = broker_msg_id;
   var version = _.get(body, 'version');
@@ -208,8 +208,16 @@ export const makeState = (fq_msg: FileQueueMessage): ArtifactState => {
     kai_state.test_case_name = test_case_name;
   }
   assert_is_valid(kai_state, 'kai_state');
+  /**
+   * Mongodb doesn't allow to have dots in keys in document, therefor we replace all dots with `_`:
+   * https://stackoverflow.com/questions/9759972/what-characters-are-not-allowed-in-mongodb-field-names
+   */
+  const broker_msg_body = deepMapKeys(body, (_v, k) => {
+    return k.replace(/[$\.]/g, '_');
+  });
   var new_state: ArtifactState = {
-    broker_msg_body: body,
+    broker_msg_body,
+    broker_extra,
     kai_state,
   };
   return new_state;
@@ -217,16 +225,16 @@ export const makeState = (fq_msg: FileQueueMessage): ArtifactState => {
 
 export const getPayloadHandlerByMsgVersion = (
   msgBody: any,
-  handlerSet: TPayloadHandlersSet
+  handlerSet: TPayloadHandlersSet,
 ): TGetPayload => {
   const version = _.get(msgBody, 'version');
   const regexAndHandler = _.find<[RegExp, TGetPayload]>(
     _.toArray(handlerSet as any),
-    ([regex, _h]) => regex.test(version)
+    ([regex, _h]) => regex.test(version),
   );
   assert.ok(
     _.isArray(regexAndHandler),
-    `Cannot find handler for version: ${version}`
+    `Cannot find handler for version: ${version}`,
   );
   const [_r, handler] = regexAndHandler;
   return handler;
@@ -236,7 +244,7 @@ const allKnownHandlers: THandlersSet = new Map<RegExp, THandler>();
 
 export const mkPayload = (
   body: any,
-  payloadHandlers: TPayloadHandlersSet
+  payloadHandlers: TPayloadHandlersSet,
 ): TPayload => {
   const getPayload = getPayloadHandlerByMsgVersion(body, payloadHandlers);
   const payload = getPayload(body);
@@ -254,13 +262,13 @@ handlersCompose.forEach((value, key) => allKnownHandlers.set(key, value));
 
 log(
   ' [i] known handlers: %O',
-  _.map([...allKnownHandlers], ([re]) => _.toString(re))
+  _.map([...allKnownHandlers], ([re]) => _.toString(re)),
 );
 
 export function getHandler(broker_topic: string) {
   return _.last(
     _.find([...allKnownHandlers], ([re]) => re.test(broker_topic)) as
       | Array<any>
-      | undefined
+      | undefined,
   );
 }
