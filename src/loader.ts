@@ -32,7 +32,13 @@ import {
 import { getcfg, mkDirParents } from './cfg';
 import { getAllSchemas } from './get_schema';
 import { NoAssociatedHandlerError } from './msg_handlers';
-import { Artifacts, ValidationErrors, get_collection, RawMessages } from './db';
+import {
+  Artifacts,
+  ValidationErrors,
+  get_collection,
+  RawMessages,
+  ToLargeDocumentError,
+} from './db';
 import { schemas, NoValidationSchemaError } from './validation';
 import { WrongVersionError } from './validation_broker';
 import { metrics_up_fq, metrics_up_parse } from './metrics';
@@ -157,17 +163,17 @@ async function start(): Promise<never> {
         err instanceof WrongVersionError ||
         err instanceof NoValidationSchemaError ||
         err instanceof NoAssociatedHandlerError ||
+        err instanceof ToLargeDocumentError ||
         err instanceof AJVValidationError
       ) {
         /**
          * Store broker-message that cannot be validated to special DB.
          */
         log(
-          ' [E] Validation error. Store message to invalid messages db. Message with broker msg-id: %s and file-queue message-id: %s.\nValidation error: %s.\nMessage content:%O',
+          ' [E] Validation error. Store message to invalid messages db. Message with broker msg-id: %s and file-queue message-id: %s.\nValidation error: %s.\n',
           fq_msg.broker_msg_id,
           fq_msg.fq_msg_id,
           err.message,
-          fq_msg,
         );
         metrics_up_fq('nack');
         try {

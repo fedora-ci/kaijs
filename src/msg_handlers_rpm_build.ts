@@ -65,6 +65,7 @@ import {
   TPayloadHandlersSet,
 } from './msg_handlers';
 import { FileQueueMessage } from './fqueue';
+import { assert_is_valid } from './validation';
 
 const log = debug('kaijs:msg_handlers_rpm_build');
 
@@ -104,6 +105,7 @@ const handlerCommon = async (
 ): Promise<ArtifactModel> => {
   const { broker_msg_id, body } = fq_msg;
   const { artifact } = body;
+  assert_is_valid(artifact, 'valid_artifact_issuer');
   const type = artifact.type;
   const task_id = artifact.id;
   var db_artifact;

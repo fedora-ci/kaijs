@@ -52,6 +52,16 @@ import { WrongVersionError } from './validation_broker';
 import { FileQueueMessage } from './fqueue';
 import { AJVValidationError } from './validation_ajv';
 
+export class ToLargeDocumentError extends Error {
+  constructor(m: string) {
+    super(m);
+    /**
+     * Set the prototype explicitly.
+     */
+    Object.setPrototypeOf(this, ToLargeDocumentError.prototype);
+  }
+}
+
 const log = debug('kaijs:db');
 const cfg = getcfg();
 
@@ -466,17 +476,17 @@ export class Artifacts extends DBCollection {
    * @returns updated document
    */
   async add(message: FileQueueMessage): Promise<ArtifactModel> {
-    const { broker_topic, broker_msg_id: message_id } = message;
+    const { broker_topic, broker_msg_id } = message;
     if (_.isUndefined(this.collection)) {
       throw new Error('Connection is not initialized');
     }
     const handler = getHandler(broker_topic);
-    this.log("'%s', %s", broker_topic, message_id);
+    this.log("'%s', %s", broker_topic, broker_msg_id);
     if (_.isUndefined(handler)) {
       const metric_name = 'handler-' + broker_topic;
       metrics_up_broker(metric_name, 'nack');
       log(' [E] No handler for topic: %s', broker_topic);
-      const errmsg = `broker msg-id: ${message_id}: does not have associated handler for topic '${broker_topic}'.`;
+      const errmsg = `broker msg-id: ${broker_msg_id}: does not have associated handler for topic '${broker_topic}'.`;
       throw new NoAssociatedHandlerError(errmsg, broker_topic);
     }
     /** Retry update artifact entry in db */
@@ -557,6 +567,13 @@ export class Artifacts extends DBCollection {
         /**
          * Can throw an exception when user does not have RO permissions
          */
+        if (
+          err instanceof RangeError &&
+          _.get(err, 'code') === 'ERR_OUT_OF_RANGE'
+        ) {
+          const errMsg = `Resulted MongoDB document exceed allowed document. For message-id: ${broker_msg_id} and broker-topic: ${broker_topic}`;
+          throw new ToLargeDocumentError(errMsg);
+        }
         if (_.isError(err)) {
           this.fail(
             'Cannot update db. Retries left: %s:%s%s',

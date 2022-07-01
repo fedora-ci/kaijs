@@ -202,13 +202,37 @@ const schemas_koji = {
   koji_build_info: schema_koji_build_info,
 };
 
-export const schemas = _.merge(
+const schema_valid_artifat_issuer = Joi.object({
+  /*
+   * https://issues.redhat.com/browse/CVP-287
+   * https://issues.redhat.com/browse/CPAAS-3355
+   */
+  issuer: Joi.string()
+    .pattern(/(freshmaker|cpaas)/i, { invert: true })
+    .required(),
+});
+
+const schemas_other = {
+  valid_artifact_issuer: schema_valid_artifat_issuer,
+};
+
+export const schemas: SchemasAllType = _.merge(
+  {},
   schemas_fq,
   schemas_db,
   schemas_koji,
+  schemas_other,
   schemas_broker,
   schemas_gate_tag,
 );
+
+export type SchemasAllType = typeof schemas_fq &
+  typeof schemas_db &
+  typeof schemas_koji &
+  typeof schemas_koji &
+  typeof schemas_other &
+  typeof schemas_broker &
+  typeof schemas_gate_tag;
 
 export type SchemaName = keyof typeof schemas;
 
