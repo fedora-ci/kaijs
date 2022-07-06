@@ -158,7 +158,6 @@ loader:
               type: 1
               payload.build_id: 1
             options:
-              type: 1
               name: 'payload_build_id_v1'
           # type: "redhat-module", nvr, issuer, scratch, source, gate_tag_name
           - keys:
@@ -205,6 +204,8 @@ loader:
               name: 'broker_topic_v1'
           - keys:
               _added: -1
+            options:
+              name: 'added_v1'
       raw_messages:
         name: 'raw-messages'
         indexes:
@@ -214,6 +215,8 @@ loader:
               name: 'broker_msg_id_v1'
           - keys:
               _added: -1
+            options:
+              name: 'added_v1'
 
   file_queue_path: 'messages-queue'
   schemas_git_upstream: 'https://pagure.io/fedora-ci/messages.git'
