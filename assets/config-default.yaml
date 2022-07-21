@@ -203,6 +203,11 @@ loader:
             options:
               name: 'broker_topic_v1'
           - keys:
+              broker_msg_id: 'text'
+            options:
+              name: 'broker_msg_id_v2'
+              unique: true
+          - keys:
               _added: -1
             options:
               name: 'added_v1'
@@ -210,9 +215,10 @@ loader:
         name: 'raw-messages'
         indexes:
           - keys:
-              broker_msg_id: 1
+              broker_msg_id: 'text'
             options:
-              name: 'broker_msg_id_v1'
+              name: 'broker_msg_id_v2'
+              unique: true
           - keys:
               _added: -1
             options:

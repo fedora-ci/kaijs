@@ -134,7 +134,7 @@ const schema_brew_build_tag = Joi.object({
  * ^(supp-)?rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|.+-stack)?-gate$
  */
 const schema_brew_build_tag_is_gate_tag_brew_build = Joi.string().pattern(
-  /^(supp-)?rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|.+-stack)?-gate$/
+  /^(supp-)?rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|.+-stack)?-gate$/,
 );
 
 /**
@@ -142,7 +142,7 @@ const schema_brew_build_tag_is_gate_tag_brew_build = Joi.string().pattern(
  */
 const schema_brew_build_tag_is_gate_tag_redhat_module_build =
   Joi.string().pattern(
-    /^(advanced-virt-[\w\.]+-)?(rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?-modules-gate)$/
+    /^(advanced-virt-[\w\.]+-)?(rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?-modules-gate)$/,
   );
 
 export const schemaError = Joi.string().error(
@@ -150,7 +150,7 @@ export const schemaError = Joi.string().error(
    * Mesage will be stored to corresponded DB with messages that didn't pass validation,
    * and loader can continue running.
    */
-  new WrongVersionError('Message has unsupported version')
+  new WrongVersionError('Message has unsupported version'),
 );
 const verRef = Joi.ref('.version');
 
@@ -227,22 +227,22 @@ const schemas_umb_broker_messages = {
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.complete&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.brew-build\\.test\\.complete$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.(brew-build|koji-build)\\.test\\.complete$/':
     schema_rpm_build_test_complete,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.error&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.brew-build\\.test\\.error$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.(brew-build|koji-build)\\.test\\.error$/':
     schema_rpm_build_test_error,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.queued&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.brew-build\\.test\\.queued$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.(brew-build|koji-build)\\.test\\.queued$/':
     schema_rpm_build_test_queued,
   /**
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.brew-build.test.running&delta=127800
    */
-  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.brew-build\\.test\\.running$/':
+  '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.(brew-build|koji-build)\\.test\\.running$/':
     schema_rpm_build_test_running,
 
   /**
@@ -312,7 +312,7 @@ const schemas_umb_broker_messages = {
 export const schemas_broker = _.merge(
   schemas_cs_broker_messages,
   schemas_umb_broker_messages,
-  schemas_fedora_broker_messages
+  schemas_fedora_broker_messages,
 );
 
 export const schemas_gate_tag = {
