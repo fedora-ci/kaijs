@@ -162,6 +162,6 @@ handlers.set(
   handlerKojiCommon,
 );
 handlers.set(
-  /^VirtualTopic\.eng\.ci(\.[\w-]+)?\.brew-build\.test\.(complete|queued|running|error)$/,
+  /^VirtualTopic\.eng\.ci(\.[\w-]+)?\.(brew-build|koji-build)\.test\.(complete|queued|running|error)$/,
   handlerBrewCommon,
 );
