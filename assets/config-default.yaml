@@ -205,8 +205,7 @@ loader:
           - keys:
               broker_msg_id: 'text'
             options:
-              name: 'broker_msg_id_v2'
-              unique: true
+              name: 'broker_msg_id_v3'
           - keys:
               _added: -1
             options:
@@ -217,8 +216,7 @@ loader:
           - keys:
               broker_msg_id: 'text'
             options:
-              name: 'broker_msg_id_v2'
-              unique: true
+              name: 'broker_msg_id_v3'
           - keys:
               _added: -1
             options:
