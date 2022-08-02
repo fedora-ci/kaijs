@@ -89,9 +89,9 @@ loader:
               type: 1
               aid: -1
             options:
-              name: 'type_aid_us_v1'
+              name: 'type_aid_num_v1'
               collation:
-                locale: 'en_US'
+                locale: 'simple'
                 numericOrdering: true
           - keys:
               type: 1
@@ -203,9 +203,9 @@ loader:
             options:
               name: 'broker_topic_v1'
           - keys:
-              broker_msg_id: 'text'
+              broker_msg_id: 1
             options:
-              name: 'broker_msg_id_v3'
+              name: 'broker_msg_id_v4'
           - keys:
               _added: -1
             options:
@@ -214,9 +214,9 @@ loader:
         name: 'raw-messages'
         indexes:
           - keys:
-              broker_msg_id: 'text'
+              broker_msg_id: 1
             options:
-              name: 'broker_msg_id_v3'
+              name: 'broker_msg_id_v4'
           - keys:
               _added: -1
             options:

@@ -403,7 +403,7 @@ export class Artifacts extends DBCollection {
           /** insert the document if it does not exist */
           upsert: true,
           /** Indexes created with collation */
-          collation: { locale: 'en_US', numericOrdering: true },
+          collation: { locale: 'simple', numericOrdering: true },
         },
       );
     } catch (err) {
@@ -495,7 +495,7 @@ export class Artifacts extends DBCollection {
     let modifiedDocument = null;
     const options = {
       returnOriginal: false,
-      collation: { locale: 'en_US', numericOrdering: true },
+      collation: { locale: 'simple', numericOrdering: true },
     };
     while (_.isNull(modifiedDocument) && retries_left > 1) {
       retries_left -= 1;
