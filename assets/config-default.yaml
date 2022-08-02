@@ -89,15 +89,11 @@ loader:
               type: 1
               aid: -1
             options:
-              name: 'type_aid_num_v1'
+              name: 'type_aid_v2'
+              # next can be ommited
               collation:
                 locale: 'simple'
                 numericOrdering: true
-          - keys:
-              type: 1
-              aid: -1
-            options:
-              name: 'type_aid_v1'
           - keys:
               _updated: -1
             options:
