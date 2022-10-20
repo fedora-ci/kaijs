@@ -152,7 +152,6 @@ export const schemaError = Joi.string().error(
    */
   new WrongVersionError('Message has unsupported version'),
 );
-const verRef = Joi.ref('.version');
 
 /**
  * brew/koji build
@@ -307,6 +306,11 @@ const schemas_umb_broker_messages = {
    */
   '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.build\\.error$/':
     schema_compose_build_error,
+
+  /*
+   * Drop all messages for container-image messages with version < 1.y.z
+   * Ajv will validate messages for container-images messages with version > 1.y.z
+   */
 };
 
 export const schemas_broker = _.merge(
