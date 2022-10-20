@@ -36,6 +36,7 @@ import { handlers as handlersBrew } from './msg_handlers_brew_hub';
 import { handlers as handlersKoji } from './msg_handlers_koji_hub';
 import { handlers as handlersRPMBuild } from './msg_handlers_rpm_build';
 import { handlers as handlersCompose } from './msg_handlers_productmd_compose';
+import { handlers as handlersContainerImage } from './msg_handlers_container_image';
 
 const log = debug('kaijs:msg_handlers');
 
@@ -259,6 +260,9 @@ handlersBrew.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersKoji.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersMBS.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersCompose.forEach((value, key) => allKnownHandlers.set(key, value));
+handlersContainerImage.forEach((value, key) =>
+  allKnownHandlers.set(key, value),
+);
 
 log(
   ' [i] known handlers: %O',

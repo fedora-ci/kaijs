@@ -66,7 +66,7 @@ const mkPayloadRedHatModule = (body: any): PayloadRedHatModule => {
   const context: string = _.get(body, 'build.extra.typeinfo.module.context');
   const mbs_id = _.get(
     body,
-    'build.extra.typeinfo.module.module_build_service_id'
+    'build.extra.typeinfo.module.module_build_service_id',
   );
   const mbs_id_str = _.toString(mbs_id);
   const nsvc: string = _.join([name, stream, version, context], ':');
@@ -91,7 +91,7 @@ const mkPayloadRedHatModule = (body: any): PayloadRedHatModule => {
  */
 const handler_brew_tag = async (
   artifacts: Artifacts,
-  fq_msg: FileQueueMessage
+  fq_msg: FileQueueMessage,
 ): Promise<ArtifactModel> => {
   const { body } = fq_msg;
   /**
@@ -99,7 +99,7 @@ const handler_brew_tag = async (
    */
   const isRedHatModule = _.has(
     body,
-    'build.extra.typeinfo.module.module_build_service_id'
+    'build.extra.typeinfo.module.module_build_service_id',
   );
   var artifactType: Extract<ArtifactTypes, 'redhat-module' | 'brew-build'>;
   var newPayload: PayloadBrewBuild | PayloadRedHatModule;
@@ -112,7 +112,7 @@ const handler_brew_tag = async (
     const tag_parse_err = _.attempt(
       Joi.assert,
       gateTagName,
-      schemas['gate_tag_redhat_module']
+      schemas['gate_tag_redhat_module'],
     );
     if (_.isError(tag_parse_err)) {
       log(' [E] Cannot parse tag: %s%s', '\n', gateTagName);
@@ -125,7 +125,7 @@ const handler_brew_tag = async (
     const tag_parse_err = _.attempt(
       Joi.assert,
       gateTagName,
-      schemas['gate_tag_brew_build']
+      schemas['gate_tag_brew_build'],
     );
     if (_.isError(tag_parse_err)) {
       log(' [E] Cannot parse tag: %s%s', '\n', gateTagName);
@@ -139,7 +139,7 @@ const handler_brew_tag = async (
     log(
       ' [E] handler_brew_tag failed for artifact id: %s for %s',
       artifactID,
-      artifactType
+      artifactType,
     );
     throw err;
   }

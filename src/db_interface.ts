@@ -61,7 +61,11 @@ export type ArtifactTypes =
   /**
    * Builds from https://kojihub.stream.centos.org/koji/
    */
-  | 'koji-build-cs';
+  | 'koji-build-cs'
+  /*
+   * Containers produced by https://brewweb.engineering.redhat.com/
+   */
+  | 'redhat-container-image';
 
 export const atype_to_hub_map = {
   'koji-build': 'fedoraproject',
@@ -170,6 +174,40 @@ export interface PayloadBrewBuild {
   build_id?: string;
 }
 
+export interface PayloadContainerImage {
+  /*
+   * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-container-image.yaml
+   */
+  /** task id */
+  task_id: string;
+  /** mirror-registry-container-v1.2.8-3 */
+  nvr: string;
+  /** owner of the build */
+  issuer: string;
+  /** name from nvr */
+  component: string;
+  /** true or false or */
+  scratch: boolean;
+  /**
+   * git://pkgs.devel.redhat.com/rpms/navilu-fonts?#937e7b088e82736a62d0b21cbb0f2e1299400b2e
+   */
+  source?: string;
+  /*
+   * Brew build ID of container
+   */
+  build_id?: string;
+  /*
+   * A digest that uniquely identifies the image within a repository.
+   * Example: sha256:67dad89757a55bfdfabec8abd0e22f8c7c12a1856514726470228063ed86593b
+   */
+  id: string;
+  name?: string;
+  namespace?: string;
+  full_names: string[];
+  registry_url: string;
+  tag: string;
+}
+
 export interface PayloadRedHatModule {
   /** mbs id */
   mbs_id: string;
@@ -197,6 +235,7 @@ export type TPayload =
   | PayloadDistGitPR
   | PayloadRedHatModule
   | PayloadFedoraModule
+  | PayloadContainerImage
   | PayloadProductMDCompose;
 
 export interface PayloadDistGitPR {
@@ -234,6 +273,7 @@ export interface ArtifactModel {
     | PayloadDistGitPR
     | PayloadRedHatModule
     | PayloadFedoraModule
+    | PayloadContainerImage
     | PayloadProductMDCompose;
   states: ArtifactState[];
   /** When the mongodb-document will be auto-removed, for example: scratch build */
