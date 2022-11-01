@@ -131,6 +131,19 @@ const schema_brew_build_tag = Joi.object({
 });
 
 /**
+ * VirtualTopic.eng.brew.build.complete
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.complete&delta=127800
+ */
+const schema_brew_build_complete = Joi.object({
+  info: Joi.object({
+    build_id: Joi.number().integer().required(),
+    name: Joi.string().required(),
+    nvr: Joi.string().required(),
+    package_name: Joi.string().required(),
+  }),
+});
+
+/**
  * ^(supp-)?rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|.+-stack)?-gate$
  */
 const schema_brew_build_tag_is_gate_tag_brew_build = Joi.string().pattern(
@@ -290,6 +303,11 @@ const schemas_umb_broker_messages = {
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
    */
   'VirtualTopic.eng.brew.build.tag': schema_brew_build_tag,
+
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
+   */
+  'VirtualTopic.eng.brew.build.complete': schema_brew_build_complete,
 
   /*
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
