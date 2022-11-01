@@ -179,7 +179,7 @@ export interface PayloadContainerImage {
    * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-container-image.yaml
    */
   /** task id */
-  task_id: string;
+  task_id: number;
   /** mirror-registry-container-v1.2.8-3 */
   nvr: string;
   /** owner of the build */
@@ -195,7 +195,7 @@ export interface PayloadContainerImage {
   /*
    * Brew build ID of container
    */
-  build_id?: string;
+  build_id?: number;
   /*
    * A digest that uniquely identifies the image within a repository.
    * Example: sha256:67dad89757a55bfdfabec8abd0e22f8c7c12a1856514726470228063ed86593b
@@ -204,8 +204,13 @@ export interface PayloadContainerImage {
   name?: string;
   namespace?: string;
   full_names: string[];
-  registry_url: string;
-  tag: string;
+  registry_url?: string;
+  tag?: string;
+  /*
+   * Entries come from: VirtualTopic.eng.brew.build.complete
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.complete&delta=86400&contains=container_build
+   */
+  osbs_subtypes?: string[];
 }
 
 export interface PayloadRedHatModule {

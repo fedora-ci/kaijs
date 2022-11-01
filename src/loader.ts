@@ -31,7 +31,7 @@ import {
 } from './fqueue';
 import { getcfg, mkDirParents } from './cfg';
 import { getAllSchemas } from './get_schema';
-import { NoAssociatedHandlerError } from './msg_handlers';
+import { NoAssociatedHandlerError, NoNeedToProcessError } from './msg_handlers';
 import {
   Artifacts,
   ValidationErrors,
@@ -207,6 +207,16 @@ async function start(): Promise<never> {
             throw err;
           }
         }
+      } else if (err instanceof NoNeedToProcessError) {
+        /**
+         * Do nothing with message
+         */
+        log(
+          ' [i] Drop message as requested. Message with broker msg-id: %s and file-queue message-id: %s.\nReason: %s.\n',
+          fq_msg.broker_msg_id,
+          fq_msg.fq_msg_id,
+          err.message,
+        );
       } else {
         if (_.isError(err)) {
           log(

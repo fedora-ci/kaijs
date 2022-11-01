@@ -58,6 +58,16 @@ export class NoAssociatedHandlerError extends Error {
   }
 }
 
+export class NoNeedToProcessError extends Error {
+  constructor(m: string, public broker_topic: string) {
+    super(m);
+    /**
+     * Set the prototype explicitly.
+     */
+    Object.setPrototypeOf(this, NoNeedToProcessError.prototype);
+  }
+}
+
 export class NoThreadIdError extends Error {
   constructor(m: string) {
     super(m);

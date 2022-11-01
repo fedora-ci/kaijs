@@ -609,11 +609,6 @@ export class Artifacts extends DBCollection {
        */
       await this.add(message);
     } catch (err) {
-      this.fail(
-        'Cannot update DB for message-id: %s and broker-topic: %s',
-        broker_msg_id,
-        broker_topic,
-      );
       throw err;
     }
   }
