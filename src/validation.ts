@@ -208,7 +208,7 @@ const schema_valid_artifat_issuer = Joi.object({
    * https://issues.redhat.com/browse/CPAAS-3355
    */
   issuer: Joi.string()
-    .pattern(/(freshmaker|cpaas|unknown)/i, { invert: true })
+    .pattern(/(cpaas|unknown)/i, { invert: true })
     .required(),
 });
 
