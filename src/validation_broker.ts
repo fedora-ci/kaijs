@@ -132,6 +132,23 @@ const schema_brew_build_tag = Joi.object({
 
 /**
  * VirtualTopic.eng.brew.build.complete
+ * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.osci.errata_automation.brew-build.run.finished&delta=127800
+ */
+const schema_eta_brew_build = Joi.object({
+  info: Joi.object({
+    ci_run_explanation: Joi.string().required(),
+    ci_run_outcome: Joi.string().required(),
+    ci_run_url: Joi.string().uri().required(),
+    msg_time: Joi.date().timestamp(),
+    msg_version: Joi.string().required(),
+    nvr: Joi.string().required(),
+    task_id: Joi.number().integer().required(),
+    bugs: Joi.array().items(Joi.object({})),
+  }),
+});
+
+/**
+ * VirtualTopic.eng.brew.build.complete
  * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.complete&delta=127800
  */
 const schema_brew_build_complete = Joi.object({
@@ -324,6 +341,12 @@ const schemas_umb_broker_messages = {
    */
   '/^VirtualTopic\\.eng\\.ci(\\.[\\w-]+)?\\.productmd-compose\\.build\\.error$/':
     schema_compose_build_error,
+
+  /**
+   * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.osci.errata_automation.brew-build.run.finished&delta=127800
+   */
+  'VirtualTopic.eng.ci.osci.errata_automation.brew-build.run.finished':
+    schema_eta_brew_build,
 
   /*
    * Drop all messages for container-image messages with version < 1.y.z

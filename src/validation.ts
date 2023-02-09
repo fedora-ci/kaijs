@@ -138,8 +138,22 @@ const schema_kai_state = Joi.object({
   test_case_name: Joi.string().pattern(/^\S+\.\S+\.\S+$/),
 });
 
+/**
+ * KaiEtaState
+ * Schema for KaiEtaState in dbInterface.ts
+ */
+const schema_kai_eta_state = Joi.object({
+  msg_id: Joi.string().required(),
+  version: Joi.string().required(),
+  timestamp: Joi.number().greater(0).required(),
+});
+
 const schema_db_artifact_state = Joi.object({
   kai_state: schema_kai_state,
+});
+
+const schema_db_artifact_eta_state = Joi.object({
+  kai_state: schema_kai_eta_state,
 });
 
 /**
@@ -181,6 +195,7 @@ const schema_db_artifact = Joi.object({
   }),
   resultsdb_testcase: Joi.array().items(Joi.string()),
   states: Joi.array().items(schema_db_artifact_state),
+  states_eta: Joi.array().items(schema_db_artifact_eta_state),
   /**
    * if only one of rpm_build, mbs_build, or dist_git_pr is allowed, but none are required
    */
@@ -193,6 +208,7 @@ const schemas_fq = {
 const schemas_db = {
   db_artifact: schema_db_artifact,
   kai_state: schema_kai_state,
+  kai_eta_state: schema_kai_eta_state,
   /** add ability to verify test-case name */
   test_case_name: schema_kai_state.extract('test_case_name').required(),
 };
@@ -311,7 +327,13 @@ export const assertMsgIsValid = async (
   message: FileQueueMessage,
 ): Promise<void> => {
   const { broker_topic, broker_msg_id } = message;
-  const isCIMessage = _.includes(broker_topic, '.ci.');
+  /**
+   * Hydra + gating teams use broker-subscriptions to match CI messages:
+   * msg-client-resultsdb-updater    queue://Consumer.client-resultsdb-updater.prod-v2.VirtualTopic.eng.ci.*.*.test.*
+   * msg-client-resultsdb-updater    queue://Consumer.client-resultsdb-updater.prod-v2.VirtualTopic.eng.ci.*.test.*
+   */
+  const ciMessageRegex = /\.ci\.[^\.]+\.([^\.]+\.)?test\./g;
+  const isCIMessage = broker_topic.match(ciMessageRegex);
   if (isCIMessage) {
     const version: string | undefined = _.get(message.body, 'version');
     if (_.isUndefined(version) || _.isEmpty(version)) {
