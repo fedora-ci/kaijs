@@ -84,7 +84,7 @@ export interface KaiEtaState {
    */
   version: string;
   /**
-   * Derived from: generated_at
+   * Derived from: msg_time
    * Example: 1616361381
    */
   timestamp: number;
