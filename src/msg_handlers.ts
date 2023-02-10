@@ -27,11 +27,14 @@ import {
   KaiState,
   ArtifactState,
   ArtifactModel,
+  ErrataToolAutomationState,
+  KaiEtaState,
 } from './db_interface';
 import { Artifacts, deepMapKeys } from './db';
 import { FileQueueMessage } from './fqueue';
 import { assert_is_valid } from './validation';
 import { handlers as handlersMBS } from './msg_handlers_mbs';
+import { handlers as handlersEta } from './msg_handlers_eta';
 import { handlers as handlersBrew } from './msg_handlers_brew_hub';
 import { handlers as handlersKoji } from './msg_handlers_koji_hub';
 import { handlers as handlersRPMBuild } from './msg_handlers_rpm_build';
@@ -192,6 +195,27 @@ const makeTestCaseName = (body: any): string => {
   return test_case_name;
 };
 
+export const makeEtaState = (
+  fq_msg: FileQueueMessage,
+): ErrataToolAutomationState => {
+  const { broker_topic, broker_msg_id, body, broker_extra } = fq_msg;
+  var msg_id = broker_msg_id;
+  var version = _.get(body, 'msg_version');
+  var timestamp = Date.parse(_.get(body, 'msg_time'));
+  const kai_eta_state: KaiEtaState = {
+    msg_id,
+    version,
+    timestamp,
+  };
+  assert_is_valid(kai_eta_state, 'kai_eta_state');
+  var new_state: ErrataToolAutomationState = {
+    broker_msg_body: body,
+    broker_extra,
+    kai_state: kai_eta_state,
+  };
+  return new_state;
+};
+
 /** Messages can be for different stages: test / build */
 export const makeState = (fq_msg: FileQueueMessage): ArtifactState => {
   const { broker_topic, broker_msg_id, body, broker_extra } = fq_msg;
@@ -269,6 +293,7 @@ handlersRPMBuild.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersBrew.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersKoji.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersMBS.forEach((value, key) => allKnownHandlers.set(key, value));
+handlersEta.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersCompose.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersContainerImage.forEach((value, key) =>
   allKnownHandlers.set(key, value),
