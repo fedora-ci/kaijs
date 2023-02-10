@@ -139,7 +139,7 @@ const schema_eta_brew_build = Joi.object({
     ci_run_explanation: Joi.string().required(),
     ci_run_outcome: Joi.string().required(),
     ci_run_url: Joi.string().uri().required(),
-    msg_time: Joi.date().timestamp(),
+    msg_time: Joi.date().iso().required(),
     msg_version: Joi.string().required(),
     nvr: Joi.string().required(),
     task_id: Joi.number().integer().required(),
