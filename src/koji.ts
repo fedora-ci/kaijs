@@ -27,7 +27,7 @@ import { getcfg } from './cfg';
 const log = debug('kaijs:kojibrew');
 const cfg = getcfg();
 
-const koji_clients = {
+export const koji_clients = {
   fedoraproject: xmlrpc.createSecureClient(cfg.koji_fp),
   'centos-stream': xmlrpc.createSecureClient(cfg.koji_cs),
 };

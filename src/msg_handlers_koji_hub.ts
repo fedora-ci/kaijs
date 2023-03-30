@@ -25,7 +25,7 @@
 import _ from 'lodash';
 import debug from 'debug';
 import assert from 'assert';
-import { koji_query, KojiHubName } from './koji';
+import { koji_clients, koji_query, KojiHubName } from './koji';
 import { Artifacts } from './db';
 import {
   ArtifactModel,
@@ -60,7 +60,11 @@ const handler_buildsys_tag = async (
     _.has(atype_to_hub_map, type),
     `handler_buildsys_tag() was called for unknown artifact type: ${type}`
   );
-  const hub_name: KojiHubName = _.get(atype_to_hub_map, type);
+  const hub_name = _.get(atype_to_hub_map, type) as KojiHubName;
+  if (!_.has(koji_clients, hub_name)) {
+    log(` [E] Invalid Koji instance identifier: ${hub_name}`);
+    throw new Error(`Invalid Koji instance identifier: ${hub_name}`);
+  }
   const { body } = fq_msg;
   const { build_id } = body;
   var buildInfo;
