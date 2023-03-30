@@ -121,7 +121,7 @@ class Config {
   constructor() {
     try {
       const def_cfg_contents = fs.readFileSync(DEF_CFG_PATH, 'utf8');
-      this.config_default = yaml.load(def_cfg_contents);
+      this.config_default = yaml.load(def_cfg_contents) as YamlItem;
     } catch (err) {
       console.warn('Cannot proceed default configuration: ', DEF_CFG_PATH);
       throw err;
@@ -137,7 +137,7 @@ class Config {
             override_cfg_path,
             'utf8',
           );
-          this.config_override = yaml.load(override_cfg_contents);
+          this.config_override = yaml.load(override_cfg_contents) as YamlItem;
           log('Override config: %s', '\n' + yaml.dump(this.config_override));
           break;
         } catch (err) {
