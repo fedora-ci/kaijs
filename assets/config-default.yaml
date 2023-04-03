@@ -218,6 +218,28 @@ loader:
             options:
               name: 'added_v1'
 
+  opensearch:
+    client: {}
+    indexes:
+      artifacts:
+        name: artifacts
+        body:
+          settings:
+            index:
+              number_of_shards: 2
+              number_of_replicas: 1
+          mappings:
+            dynamic: False
+      invalid_messages:
+        name: invalid_messages
+        body:
+          settings:
+            index:
+              number_of_shards: 2
+              number_of_replicas: 1
+          mappings:
+            dynamic: False
+
   file_queue_path: 'messages-queue'
   schemas_git_upstream: 'https://pagure.io/fedora-ci/messages.git'
   schemas_local_git_repo_path: 'schemas.git'
@@ -247,6 +269,16 @@ env_to_config_map:
     schemas_git_upstream: LOADER_SCHEMAS_GIT_UPSTREAM
     schemas_local_git_repo_path: LOADER_SCHEMAS_GIT_REPO_PATH
     schemas_local_dir_unpacked: LOADER_SCHEMAS_DIR_UNPACKED
+    opensearch:
+      client:
+        node: LOADER_OPENSEARCH_CLIENT_NODE
+        ssl:
+          ca: LOADER_OPENSEARCH_CLIENT_SSL_CA
+      indexes:
+        artifacts:
+          name: LOADER_OPENSEARCH_INDEXES_ARTIFACTS_NAME
+        invalid_messages:
+          name: LOADER_OPENSEARCH_INDEXES_INVALID_MESSAGES_NAME
   listener:
     broker_umb:
       client_name: LISTENER_BROKER_UMB_CLIENT_NAME
