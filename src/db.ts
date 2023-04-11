@@ -102,9 +102,6 @@ class DBCollection {
   public mongo_client: MongoClient;
   public db_name?: string;
   public options?: MongoClientOptions;
-  public static def_options = {
-    useUnifiedTopology: true,
-  };
 
   constructor(
     cfg_entry: keyof typeof cfg.loader.db.collections,
@@ -118,10 +115,8 @@ class DBCollection {
     this.collection_name =
       collection_name || cfg.loader.db.collections[this.cfg_entry].name;
     this.db_name = db_name || cfg.loader.db.db_name;
-    /** http://mongodb.github.io/node-mongodb-native/3.6/api/MongoClient.html */
-    const opts = options || _.cloneDeep(DBCollection.def_options);
-    _.merge(opts, options);
-    this.mongo_client = new MongoClient(this.url, opts);
+    /** https://mongodb.github.io/node-mongodb-native/5.2/classes/MongoClient.html */
+    this.mongo_client = new MongoClient(this.url, options);
   }
 
   log(s: string, ...args: any[]): void {
@@ -151,11 +146,11 @@ class DBCollection {
       );
       this.log('Connected successfully to collection.');
       /** Db is no longer the place to listen to events, you should listen to your MongoClient. */
-      this.db.on('close', on_close);
-      this.db.on('error', on_error);
-      this.db.on('error', on_timeout);
-      this.db.on('reconnect', on_reconnect);
-      this.db.on('parseError', on_parseError);
+      this.mongo_client.on('close', on_close);
+      this.mongo_client.on('error', on_error);
+      this.mongo_client.on('error', on_timeout);
+      this.mongo_client.on('reconnect', on_reconnect);
+      this.mongo_client.on('parseError', on_parseError);
     } catch (err) {
       this.mongo_client.close();
       throw err;
@@ -176,8 +171,9 @@ class DBCollection {
         _.flow(_.identity, _.partialRight(_.get, 'options.name')),
       ),
     );
-    if (_.size(indexes_active)) {
-      for (const index of indexes_active) {
+    if (!_.isEmpty(indexes_active)) {
+      // NOTE: We know that `indexes_active` is not undefined thanks to the guard above.
+      for (const index of indexes_active!) {
         if (keep.includes(index.name)) {
           this.log('Keep index: %s', index.name);
           continue;
@@ -398,8 +394,7 @@ export class Artifacts extends DBCollection {
         },
         /** options */
         {
-          /** false == returns the updated document rather than the original */
-          returnOriginal: false,
+          returnDocument: 'after',
           /** insert the document if it does not exist */
           upsert: true,
           /** Indexes created with collation */
@@ -559,7 +554,7 @@ export class Artifacts extends DBCollection {
         assert.ok(ok === 1, 'Cannot update artifact document with new values.');
         /** Contains true if an update operation modified an existing document. */
         assert.ok(
-          lastErrorObject.updatedExisting === true,
+          lastErrorObject?.updatedExisting === true,
           'Error to upate existing artifact document with new values',
         );
         modifiedDocument = value;
