@@ -268,19 +268,21 @@ async function broker_connect(): Promise<Connection> {
     connection: connectionOptions,
     failover: { set: failover },
   } = broker_cfg;
+  // Check the expected type of connection options, we expect TLS settings.
+  if (!('key' in connectionOptions && 'cert' in connectionOptions)) {
+      log(' [E] configuration for UMB connection is missing `key` or `cert` options');
+      throw new Error('Invalid UMB connection configuration');
+  }
   assert.ok(
-    _.some([
-      _.negate(_.isEmpty)(connectionOptions.host),
-      _.negate(_.isEmpty)(failover),
-    ]),
+    !_.isEmpty(connectionOptions.host) || !_.isEmpty(failover),
     'Configuration error. Options is required one of: UMB-broker hostname or failover set.',
   );
   assert.ok(
-    _.negate(_.isEmpty)(connectionOptions.key),
+    !_.isEmpty(connectionOptions.key),
     'Configuration error. UMB-broker private key is missing',
   );
   assert.ok(
-    _.negate(_.isEmpty)(connectionOptions.cert),
+    !_.isEmpty(connectionOptions.cert),
     'Configuration error. UMB-broker certificate is missing',
   );
   /**
@@ -290,7 +292,7 @@ async function broker_connect(): Promise<Connection> {
   connectionOptions.incoming_locales = ['utf8'];
   const connection_details = (): ConnectionDetails => {
     var host, port;
-    if (_.negate(_.isEmpty)(failover)) {
+    if (!_.isEmpty(failover)) {
       const host_port = failover[attempt % failover.length];
       [host, port] = _.split(host_port, ':');
     } else {
