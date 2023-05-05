@@ -1,0 +1,6 @@
+{
+  "watch": ["src"],
+  "ext": ".ts,.js",
+  "ignore": [],
+  "exec": "source ./env.sh && ts-node ./src/loader_opensearch.ts | ./node_modules/.bin/pino-pretty"
+}

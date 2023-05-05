@@ -233,16 +233,7 @@ export interface Cfg {
     };
     opensearch: {
       client: ClientOptions;
-      indexes: {
-        artifacts: {
-          name: string;
-          body: any;
-        };
-        invalid_messages: {
-          name: string;
-          body: any;
-        };
-      };
+      indexes_prefix: string;
     };
     schemas_git_upstream: string;
     schemas_local_git_repo_path: string;
