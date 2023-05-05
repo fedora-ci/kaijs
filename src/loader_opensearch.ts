@@ -1,7 +1,6 @@
-/*
- * This file is part of kaijs
+/* This file is part of kaijs
 
- * Copyright (c) 2021, 2022 Andrei Stepanov <astepano@redhat.com>
+ * Copyright (c) 2021, 2022, 2023 Andrei Stepanov <astepano@redhat.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,14 +30,16 @@ import {
 } from './fqueue';
 import { getcfg, mkDirParents } from './cfg';
 import { getAllSchemas } from './get_schema';
-import { NoAssociatedHandlerError, NoNeedToProcessError } from './msg_handlers';
 
-import { OpensearchDocumentError, OpensearchClient } from './opensearch';
+import {
+  getMsgUpserts,
+  OpensearchClient,
+  printify,
+  Upsert,
+} from './opensearch/opensearch';
 
-import { schemas, NoValidationSchemaError } from './validation';
-import { WrongVersionError } from './validation_broker';
-import { metrics_up_fq, metrics_up_parse } from './metrics';
-import { AJVValidationError } from './validation_ajv';
+import { schemas } from './validation';
+import { OrderedBulkOperation } from 'mongodb';
 
 /** Wire-in pino and debug togather. */
 require('./pino_logger');
@@ -92,7 +93,6 @@ async function start(): Promise<never> {
   for (const signal of clean_on) {
     process.once(signal, _.curry(handle_signal)(fqueue, opensearchClient));
   }
-
   /** Do not process messages until we have local copy of the git-repo with messages schemas */
   await getAllSchemas();
   /**
@@ -105,15 +105,65 @@ async function start(): Promise<never> {
   );
   cron.schedule(cronExprShemas, getAllSchemas);
 
+  /**
+   * The encodeURI() function replaces each non-ASCII character in the string with a percent-encoded representation,
+   * which is a sequence of three characters. By splitting the encoded string on these sequences and counting the resulting
+   * array length, we can determine the number of bytes in the original string.
+   */
+  function getObjectSize(obj: any): number {
+    const objectString = JSON.stringify(obj);
+    const utf8Length = encodeURI(objectString).split(/%..|./).length - 1;
+    return utf8Length;
+  }
+
+  function rollbackFqMessages(fqEntries: FileQueueEntry[]) {
+    for (let fq_entry of fqEntries) {
+      log(
+        ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
+        fq_entry.message.broker_msg_id,
+      );
+      fq_entry.rollback((err: Error) => {
+        if (err) throw err;
+      });
+    }
+  }
+
+  function commitFqMessages(fqEntries: FileQueueEntry[]) {
+    for (let fq_entry of fqEntries) {
+      /**
+       * Message was processed. Release message from file-queue.
+       */
+      log(
+        ' [i] Message was processed. Broker msg-id %s.',
+        fq_entry.message.broker_msg_id,
+      );
+      fq_entry.commit((err: Error) => {
+        if (err) throw err;
+      });
+    }
+  }
+
+  let fqEntries: FileQueueEntry[] = [];
+  let bulkUpserts: Upsert[] = [];
+  let bulkSizeBytes = 0;
+  let prevMsgTime = new Date();
+  const bulkSecondsThreshold = 3;
+  const bulkMaxEntries = 100;
+  /** 50MB: bulk max size, to pass HTTPS request + 1 message in size 50MB. */
+  const bulkMaxSize = 1024 * 1024 * 1024 * 50;
+
   while (true) {
     let fq_msg: FileQueueMessage;
     let fq_commit: FileQueueCallback, fq_rollback: FileQueueCallback;
+    let fq_entry: FileQueueEntry;
     try {
       log(' [i] Waiting for next fq message...');
-      const { message, commit, rollback }: FileQueueEntry = await fq.tpop(
-        fqueue,
-      );
-      [fq_msg, fq_commit, fq_rollback] = [message, commit, rollback];
+      fq_entry = await fq.tpop(fqueue);
+      [fq_msg, fq_commit, fq_rollback] = [
+        fq_entry.message,
+        fq_entry.commit,
+        fq_entry.rollback,
+      ];
     } catch (err) {
       console.warn('Cannot get msg from file-queue', err);
       process.exit(1);
@@ -125,8 +175,6 @@ async function start(): Promise<never> {
       fq_commit((err: Error) => {
         if (err) throw err;
       });
-      metrics_up_fq('nack');
-      metrics_up_parse('fq_msg', 'err');
       log(
         ' [E] Cannot parse received message from file-queue. Dropping message:%s%s',
         '\n',
@@ -134,107 +182,52 @@ async function start(): Promise<never> {
       );
       continue;
     }
-    /*
-     * const fq_length = await fq.length(fqueue);
-     * Do not do this: it is not efficient on large number of files.
-     */
     log(
       ' [i] Adding message to DB with file-queue message id %O.',
       fq_msg.fq_msg_id,
     );
+    const newMsgTime = new Date();
+    const secondsBetweenMessages =
+      (newMsgTime.getTime() - prevMsgTime.getTime()) / 1000;
+    prevMsgTime = newMsgTime;
+    const msgUpserts = await getMsgUpserts(fq_msg);
+    const upsertsSizeBytes = _.sum(
+      _.map(msgUpserts, (upsert) => getObjectSize(upsert.upsertDoc)),
+    );
+    bulkSizeBytes += upsertsSizeBytes;
+    bulkUpserts = [...bulkUpserts, ...msgUpserts];
+    fqEntries.push(fq_entry);
+    if (
+      secondsBetweenMessages < bulkSecondsThreshold &&
+      bulkUpserts.length < bulkMaxEntries &&
+      bulkSizeBytes < bulkMaxSize
+    ) {
+      continue;
+    }
+    log(' [I] bulkSizeBytes: %s', bulkSizeBytes);
     try {
-      await opensearchClient.addMsg(fq_msg);
+      await opensearchClient.bulkUpdate(bulkUpserts);
+      bulkUpserts = [];
+      bulkSizeBytes = 0;
+      commitFqMessages(fqEntries);
+      fqEntries = [];
     } catch (err) {
-      if (
-        err instanceof Joi.ValidationError ||
-        err instanceof WrongVersionError ||
-        err instanceof NoValidationSchemaError ||
-        err instanceof NoAssociatedHandlerError ||
-        err instanceof AJVValidationError
-      ) {
-        /**
-         * Store broker-message that cannot be validated to special DB.
-         */
+      if (_.isError(err)) {
+        /** err object can have many different properties. To dump all details abot err we use printify */
         log(
-          ' [E] Validation error. Store message to invalid messages db. Message with broker msg-id: %s and file-queue message-id: %s.\nValidation error: %s.\n',
-          fq_msg.broker_msg_id,
-          fq_msg.fq_msg_id,
-          err.message,
-        );
-        metrics_up_fq('nack');
-        try {
-          await opensearchClient.addInvalidMsg(fq_msg, err);
-          log(
-            ' [i] stored invalid message. Broker msg-id %s.',
-            fq_msg.broker_msg_id,
-          );
-        } catch (err) {
-          /** The message  */
-          if (_.isError(err)) {
-            log(
-              ' [E] Cannot store invalid message with broker msg-id: %s and file-queue message-id: %s.\nError: %s.',
-              fq_msg.broker_msg_id,
-              fq_msg.fq_msg_id,
-              err.message,
-            );
-            /** At this point message stays un-acked at file-queue */
-            log(
-              ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
-              fq_msg.broker_msg_id,
-            );
-            fq_rollback((err: Error) => {
-              if (err) throw err;
-            });
-            /**
-             * Exit from programm.
-             */
-            process.exit(1);
-          } else {
-            throw err;
-          }
-        }
-      } else if (err instanceof NoNeedToProcessError) {
-        /**
-         * Do nothing with message
-         */
-        log(
-          ' [i] Drop message as requested. Message with broker msg-id: %s and file-queue message-id: %s.\nReason: %s.\n',
-          fq_msg.broker_msg_id,
-          fq_msg.fq_msg_id,
-          err.message,
+          ' [E] Cannot update DB with received messages.',
+          'Error is:',
+          printify(err),
         );
       } else {
-        if (_.isError(err)) {
-          log(
-            ' [E] Cannot update DB with received message.',
-            `File-queue message id: ${fq_msg.fq_msg_id}`,
-            'Error is:',
-            err.message,
-          );
-        } else {
-          throw err;
-        }
-        log(
-          ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
-          fq_msg.broker_msg_id,
-        );
-        fq_rollback((err: Error) => {
-          if (err) throw err;
-        });
-        /**
-         * Exit from programm.
-         */
-        process.exit(1);
+        throw err;
       }
+      rollbackFqMessages(fqEntries);
+      /**
+       * Exit from programm.
+       */
+      process.exit(1);
     }
-    metrics_up_fq('ack');
-    /**
-     * Message was processed. Release message from file-queue.
-     */
-    log(' [i] Message was processed. Broker msg-id %s.', fq_msg.broker_msg_id);
-    fq_commit((err: Error) => {
-      if (err) throw err;
-    });
   }
 }
 
