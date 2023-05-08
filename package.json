@@ -35,7 +35,7 @@
     "pino-pretty": "^10.0.0",
     "retry": "^0.13.1",
     "rhea": "^3.0.2",
-    "rhea-promise": "^3.0.0",
+    "rhea-promise": "^3.0.1",
     "simple-git": "^3.18.0",
     "uuid": "^9.0.0",
     "xmlrpc": "^1.3.2"
