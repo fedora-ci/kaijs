@@ -1,7 +1,7 @@
 /*
  * This file is part of kaijs
 
- * Copyright (c) 2021, 2022 Andrei Stepanov <astepano@redhat.com>
+ * Copyright (c) 2021, 2022, 2023 Andrei Stepanov <astepano@redhat.com>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,39 +22,22 @@ import _ from 'lodash';
 import debug from 'debug';
 import assert from 'assert';
 import crypto from 'crypto';
-import {
-  TPayload,
-  KaiState,
-  ArtifactState,
-  ArtifactModel,
-  ErrataToolAutomationState,
-  KaiEtaState,
-} from './db_interface';
-import { Artifacts, deepMapKeys } from './db';
-import { FileQueueMessage } from './fqueue';
-import { assert_is_valid } from './validation';
-import {
-  handlers as handlersSimple,
-  THandlerSimple,
-  THandlersSimpleSet,
-} from './msg_handlers_simple';
-import { handlers as handlersMBS } from './msg_handlers_mbs';
+import { FileQueueMessage } from '../fqueue';
+import { assert_is_valid } from '../validation';
 import { handlers as handlersEta } from './msg_handlers_eta';
-import { handlers as handlersBrew } from './msg_handlers_brew_hub';
-import { handlers as handlersKoji } from './msg_handlers_koji_hub';
-import { handlers as handlersRPMBuild } from './msg_handlers_rpm_build';
-import { handlers as handlersCompose } from './msg_handlers_productmd_compose';
-import { handlers as handlersContainerImage } from './msg_handlers_container_image';
+import { handlers as handlersBrew } from './msg_handlers_brew';
+import { handlers as handlersKoji } from './msg_handlers_koji';
+import { handlers as handlersTest } from './msg_handlers_test';
+import { MessageData, TSearchable, Upsert } from './opensearch';
 
 const log = debug('kaijs:msg_handlers');
 
-export type TGetPayload = (body: any) => TPayload;
-export type THandler = (
-  artifacts: Artifacts,
-  fq_msg: FileQueueMessage,
-) => Promise<ArtifactModel>;
+export type TGetSearchable = (body: any) => TSearchable;
+
+export type THandler = (fq_msg: FileQueueMessage) => Promise<Upsert[]>;
+
 export type THandlersSet = Map<RegExp, THandler>;
-export type TPayloadHandlersSet = Map<RegExp, TGetPayload>;
+export type TSearchableHandlersSet = Map<RegExp, TGetSearchable>;
 
 export class NoAssociatedHandlerError extends Error {
   constructor(m: string, public broker_topic: string) {
@@ -103,7 +86,7 @@ export function customMerge(presentVaule: any, newValue: any) {
 }
 
 /** messages can be for different stages: test / build */
-const mkThreadId = (fq_msg: FileQueueMessage) => {
+export const mkThreadId = (fq_msg: FileQueueMessage) => {
   const { broker_msg_id, body } = fq_msg;
   const thread_id_v_1 = _.get(body, 'pipeline.id');
   const thread_id_v_0_1 = _.get(body, 'thread_id');
@@ -179,7 +162,7 @@ export function isTestStage(broker_topic: string): boolean {
   return stage === 'test';
 }
 
-const makeTestCaseName = (body: any): string => {
+export const makeTestCaseName = (body: any): string => {
   let test_case_name: string = '';
   if (isMsgV1(body)) {
     const namespace = _.get(body, 'test.namespace');
@@ -200,75 +183,24 @@ const makeTestCaseName = (body: any): string => {
   return test_case_name;
 };
 
-export const makeEtaState = (
-  fq_msg: FileQueueMessage,
-): ErrataToolAutomationState => {
-  const { broker_topic, broker_msg_id, body, broker_extra } = fq_msg;
-  var msg_id = broker_msg_id;
-  var version = _.get(body, 'msg_version');
-  var timestamp = Date.parse(_.get(body, 'msg_time'));
-  const kai_eta_state: KaiEtaState = {
-    msg_id,
-    version,
-    timestamp,
-  };
-  assert_is_valid(kai_eta_state, 'kai_eta_state');
-  var new_state: ErrataToolAutomationState = {
-    broker_msg_body: body,
-    broker_extra,
-    kai_state: kai_eta_state,
-  };
-  return new_state;
-};
-
 /** Messages can be for different stages: test / build */
-export const makeState = (fq_msg: FileQueueMessage): ArtifactState => {
+export const makeMessageData = (fq_msg: FileQueueMessage): MessageData => {
   const { broker_topic, broker_msg_id, body, broker_extra } = fq_msg;
-  var thread_id = mkThreadId(fq_msg);
-  var msg_id = broker_msg_id;
-  var version = _.get(body, 'version');
-  var state = _.last(_.split(broker_topic, '.')) as string;
-  var stage = _.nth(_.split(broker_topic, '.'), -2) as string;
-  var timestamp = Date.parse(_.get(body, 'generated_at'));
-  var origin = {
-    creator: 'kaijs-loader',
-    reason: 'broker message',
+  const messageData = {
+    msg_topic: broker_topic,
+    msg_id: broker_msg_id,
+    msg_body: body,
+    extra: broker_extra,
   };
-  const kai_state: KaiState = {
-    thread_id,
-    msg_id,
-    version,
-    stage,
-    state,
-    timestamp,
-    origin,
-  };
-  if (isTestStage(broker_topic)) {
-    const test_case_name = makeTestCaseName(body);
-    kai_state.test_case_name = test_case_name;
-  }
-  assert_is_valid(kai_state, 'kai_state');
-  /**
-   * Mongodb doesn't allow to have dots in keys in document, therefor we replace all dots with `_`:
-   * https://stackoverflow.com/questions/9759972/what-characters-are-not-allowed-in-mongodb-field-names
-   */
-  const broker_msg_body = deepMapKeys(body, (_v, k) => {
-    return k.replace(/[$\.]/g, '_');
-  });
-  var new_state: ArtifactState = {
-    broker_msg_body,
-    broker_extra,
-    kai_state,
-  };
-  return new_state;
+  return messageData;
 };
 
-export const getPayloadHandlerByMsgVersion = (
+const getSearchableHandlerByMsgVersion = (
   msgBody: any,
-  handlerSet: TPayloadHandlersSet,
-): TGetPayload => {
+  handlerSet: TSearchableHandlersSet,
+): TGetSearchable => {
   const version = _.get(msgBody, 'version');
-  const regexAndHandler = _.find<[RegExp, TGetPayload]>(
+  const regexAndHandler = _.find<[RegExp, TGetSearchable]>(
     _.toArray(handlerSet as any),
     ([regex, _h]) => regex.test(version),
   );
@@ -282,11 +214,11 @@ export const getPayloadHandlerByMsgVersion = (
 
 const allKnownHandlers: THandlersSet = new Map<RegExp, THandler>();
 
-export const mkPayload = (
+export const mkSearchable = (
   body: any,
-  payloadHandlers: TPayloadHandlersSet,
-): TPayload => {
-  const getPayload = getPayloadHandlerByMsgVersion(body, payloadHandlers);
+  payloadHandlers: TSearchableHandlersSet,
+): TSearchable => {
+  const getPayload = getSearchableHandlerByMsgVersion(body, payloadHandlers);
   const payload = getPayload(body);
   return payload;
 };
@@ -294,32 +226,17 @@ export const mkPayload = (
 /**
  * Populate all allKnownHandlers for each category
  */
-handlersRPMBuild.forEach((value, key) => allKnownHandlers.set(key, value));
+handlersTest.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersBrew.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersKoji.forEach((value, key) => allKnownHandlers.set(key, value));
-handlersMBS.forEach((value, key) => allKnownHandlers.set(key, value));
 handlersEta.forEach((value, key) => allKnownHandlers.set(key, value));
-handlersCompose.forEach((value, key) => allKnownHandlers.set(key, value));
-handlersContainerImage.forEach((value, key) =>
-  allKnownHandlers.set(key, value),
-);
 
 log(
   ' [i] known handlers: %O',
   _.map([...allKnownHandlers], ([re]) => _.toString(re)),
 );
 
-const allKnownSimpleHandlers: THandlersSimpleSet = new Map<
-  RegExp,
-  THandlerSimple
->();
-handlersSimple.forEach((value, key) => allKnownSimpleHandlers.set(key, value));
-log(
-  ' [i] known simple handlers: %O',
-  _.map([...allKnownSimpleHandlers], ([re]) => _.toString(re)),
-);
-
-export function getHandler(broker_topic: string) {
+export function getHandler(broker_topic: string): THandler {
   return _.last(
     _.find([...allKnownHandlers], ([re]) => re.test(broker_topic)) as
       | Array<any>
@@ -327,10 +244,7 @@ export function getHandler(broker_topic: string) {
   );
 }
 
-export function getSimpleHandler(broker_topic: string) {
-  return _.last(
-    _.find([...allKnownSimpleHandlers], ([re]) => re.test(broker_topic)) as
-      | Array<any>
-      | undefined,
-  );
-}
+export const ContextToKojiInstance = {
+  fedora: 'fedoraproject',
+  centos: 'centos-stream',
+};
