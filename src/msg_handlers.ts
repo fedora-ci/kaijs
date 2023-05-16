@@ -33,11 +33,6 @@ import {
 import { Artifacts, deepMapKeys } from './db';
 import { FileQueueMessage } from './fqueue';
 import { assert_is_valid } from './validation';
-import {
-  handlers as handlersSimple,
-  THandlerSimple,
-  THandlersSimpleSet,
-} from './msg_handlers_simple';
 import { handlers as handlersMBS } from './msg_handlers_mbs';
 import { handlers as handlersEta } from './msg_handlers_eta';
 import { handlers as handlersBrew } from './msg_handlers_brew_hub';
@@ -309,27 +304,9 @@ log(
   _.map([...allKnownHandlers], ([re]) => _.toString(re)),
 );
 
-const allKnownSimpleHandlers: THandlersSimpleSet = new Map<
-  RegExp,
-  THandlerSimple
->();
-handlersSimple.forEach((value, key) => allKnownSimpleHandlers.set(key, value));
-log(
-  ' [i] known simple handlers: %O',
-  _.map([...allKnownSimpleHandlers], ([re]) => _.toString(re)),
-);
-
 export function getHandler(broker_topic: string) {
   return _.last(
     _.find([...allKnownHandlers], ([re]) => re.test(broker_topic)) as
-      | Array<any>
-      | undefined,
-  );
-}
-
-export function getSimpleHandler(broker_topic: string) {
-  return _.last(
-    _.find([...allKnownSimpleHandlers], ([re]) => re.test(broker_topic)) as
       | Array<any>
       | undefined,
   );
