@@ -68,8 +68,8 @@ export type ArtifactTypes =
   | 'redhat-container-image';
 
 export const atype_to_hub_map = {
-  'koji-build': 'fedoraproject',
-  'koji-build-cs': 'centos-stream',
+  'koji-build': 'fedora',
+  'koji-build-cs': 'centos',
 };
 
 export interface KaiEtaState {

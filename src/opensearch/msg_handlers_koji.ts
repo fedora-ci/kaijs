@@ -24,6 +24,7 @@
 
 import _ from 'lodash';
 import debug from 'debug';
+import assert from 'assert';
 import { koji_query, KojiHubName } from '../koji';
 import { THandler, THandlersSet } from './msg_handlers';
 import { assert_is_valid } from '../validation';
@@ -36,9 +37,13 @@ import {
   SearchableRpm,
   ArtifactContext,
 } from './opensearch';
-import { ContextToKojiInstance } from './msg_handlers';
 
 const log = debug('kaijs:msg_handlers_koji');
+
+const ContextToKojiInstance: { [key in ArtifactContext]?: KojiHubName } = {
+  fedora: 'fedora',
+  centos: 'centos',
+};
 
 /**
  * "msg": {
@@ -57,16 +62,17 @@ const mkSearchableRPMFromBuildTagKojiBuild = (
   buildInfo: any,
 ): SearchableRpm => {
   const { body, broker_msg_id } = fq_msg;
-  const build_id = _.get(body, 'build_id');
-  const task_id = _.toString(buildInfo.task_id);
-
+  const buildId = _.get(body, 'build_id');
+  const taskId = _.toString(buildInfo.task_id);
+  const gateTagName = _.get(body, 'tag');
   const searchable: SearchableRpm = {
-    task_id,
-    build_id: _.toString(build_id),
+    task_id: taskId,
+    build_id: _.toString(buildId),
     nvr: _.get(buildInfo, 'nvr'),
     issuer: body.owner,
     source: _.get(buildInfo, 'extra.source.original_url'),
     component: _.get(buildInfo, 'name'),
+    gate_tag_name: gateTagName,
     broker_msg_id_brew_tag: broker_msg_id,
   };
 
@@ -77,12 +83,16 @@ const handler_buildsys_tag = async (
   artifactContext: ArtifactContext,
   fq_msg: FileQueueMessage,
 ): Promise<Upsert[]> => {
-  const hub_name: KojiHubName = _.get(ContextToKojiInstance, artifactContext);
+  const hubName = ContextToKojiInstance[artifactContext];
+  assert.ok(
+    hubName,
+    `Cannot get hub name for artifact context: ${artifactContext}`,
+  );
   const { body } = fq_msg;
   const { build_id } = body;
   let buildInfo;
   try {
-    buildInfo = await koji_query(hub_name, 'getBuild', build_id);
+    buildInfo = await koji_query(hubName, 'getBuild', build_id);
   } catch (err) {
     log(
       ' [E] handler_buildsys_tag cannot get buildInfo for build_id: %s',
@@ -91,10 +101,7 @@ const handler_buildsys_tag = async (
     throw err;
   }
   assert_is_valid(buildInfo, 'koji_build_info');
-
-  //
   let searchable: SearchableRpm;
-  const gateTagName = _.get(body, 'tag');
   let artifactType: ArtifactTypes;
   let artifactId;
   searchable = mkSearchableRPMFromBuildTagKojiBuild(fq_msg, buildInfo);
