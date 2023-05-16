@@ -44,8 +44,8 @@ const mkSearchableRPMFromBuildTagBrewBuild = (
   fq_msg: FileQueueMessage,
 ): SearchableRpm => {
   const { body, broker_msg_id } = fq_msg;
-  const build_id = _.get(body, 'build.build_id');
-  const build_id_str = _.toString(build_id);
+  const buildId = _.get(body, 'build.build_id');
+  const buildIdStr = _.toString(buildId);
   const searchable: SearchableRpm = {
     task_id: _.get(body, 'build.task_id'),
     /* Should be None for module */
@@ -55,7 +55,7 @@ const mkSearchableRPMFromBuildTagBrewBuild = (
     component: _.get(body, 'build.package_name'),
     gate_tag_name: _.get(body, 'tag.name'),
     source: _.get(body, 'build.source'),
-    build_id: build_id_str,
+    build_id: buildIdStr,
     broker_msg_id_brew_tag: broker_msg_id,
   };
   return searchable;
@@ -72,11 +72,11 @@ const mkSearchableRedhatModuleFromBuildTagRedHatModule = (
   const stream: string = _.get(body, 'build.extra.typeinfo.module.stream');
   const version: string = _.get(body, 'build.extra.typeinfo.module.version');
   const context: string = _.get(body, 'build.extra.typeinfo.module.context');
-  const mbs_id = _.get(
+  const mbsId = _.get(
     body,
     'build.extra.typeinfo.module.module_build_service_id',
   );
-  const mbs_id_str = _.toString(mbs_id);
+  const mbsIdStr = _.toString(mbsId);
   const nsvc: string = _.join([name, stream, version, context], ':');
   const searchable: SearchableRedHatModule = {
     name,
@@ -84,7 +84,7 @@ const mkSearchableRedhatModuleFromBuildTagRedHatModule = (
     stream,
     context,
     nsvc,
-    mbs_id: mbs_id_str,
+    mbs_id: mbsIdStr,
     nvr: _.get(body, 'build.nvr'),
     issuer: _.get(body, 'build.owner_name'),
     scratch: _.get(body, 'build.scratch', false),
@@ -126,6 +126,7 @@ const mkSearchableFromBuildCompleteRedHatContainerImage = (
     ]),
     full_names: _.get(body, 'info.extra.image.index.pull', []),
     osbs_subtypes: _.get(body, 'info.extra.osbs_build.subtypes'),
+    broker_msg_id_build_complete: broker_msg_id,
   };
   return payload;
 };

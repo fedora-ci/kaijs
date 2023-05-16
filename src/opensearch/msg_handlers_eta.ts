@@ -84,14 +84,14 @@ const handlerCommon = async (
   artifactContext: ArtifactContext,
   fq_msg: FileQueueMessage,
 ): Promise<Upsert[]> => {
-  const { broker_msg_id, body } = fq_msg;
+  const { broker_msg_id } = fq_msg;
   const type = 'brew-build';
   /** ETA messages can have task_id == null, these messages will be dropped by validation */
   const docId = broker_msg_id;
-  const artifact_type = 'brew-build';
+  const artifactType = 'brew-build';
   const searchable = mkSearchable(fq_msg, searchableEtaHandlers);
   const parentDocId = mkParentDocId(fq_msg);
-  const indexName: string = getIndexName(artifactContext, artifact_type);
+  const indexName: string = getIndexName(artifactContext, artifactType);
   const messageData = makeMessageData(fq_msg);
   const upsertDoc: Document = {
     searchable,

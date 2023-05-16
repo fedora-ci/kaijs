@@ -33,9 +33,7 @@ import { MessageData, TSearchable, Upsert } from './opensearch';
 const log = debug('kaijs:msg_handlers');
 
 export type TGetSearchable = (body: any) => TSearchable;
-
 export type THandler = (fq_msg: FileQueueMessage) => Promise<Upsert[]>;
-
 export type THandlersSet = Map<RegExp, THandler>;
 export type TSearchableHandlersSet = Map<RegExp, TGetSearchable>;
 
@@ -88,32 +86,32 @@ export function customMerge(presentVaule: any, newValue: any) {
 /** messages can be for different stages: test / build */
 export const mkThreadId = (fq_msg: FileQueueMessage) => {
   const { broker_msg_id, body } = fq_msg;
-  const thread_id_v_1 = _.get(body, 'pipeline.id');
-  const thread_id_v_0_1 = _.get(body, 'thread_id');
-  const thread_id = _.find(
-    [thread_id_v_1, thread_id_v_0_1],
+  const threadIdV1 = _.get(body, 'pipeline.id');
+  const threadIdV01 = _.get(body, 'thread_id');
+  let threadId = _.find(
+    [threadIdV1, threadIdV01],
     _.flow(_.identity, _.overEvery([_.negate(_.isEmpty), _.isString])),
   );
-  if (thread_id) {
+  if (threadId) {
     log(
       ' [i] take a thread id for msg-id %s from message: %s',
       broker_msg_id,
-      thread_id,
+      threadId,
     );
-    return thread_id;
+    return threadId;
   }
   /**
    * No thread-id in message.
    * Generate a dummy thread id
    */
   const hashAnchorParts = [];
-  const run_url = _.get(body, 'run.url');
-  if (!_.isEmpty(run_url) && _.isString(run_url)) {
-    hashAnchorParts.push(run_url);
+  const runUrl = _.get(body, 'run.url');
+  if (!_.isEmpty(runUrl) && _.isString(runUrl)) {
+    hashAnchorParts.push(runUrl);
   }
   if (isTestStage(body)) {
-    var test_case_name = makeTestCaseName(body);
-    hashAnchorParts.push(test_case_name);
+    var testCaseName = makeTestCaseName(body);
+    hashAnchorParts.push(testCaseName);
   }
   if (_.isEmpty(hashAnchorParts)) {
     throw new NoThreadIdError(
@@ -139,7 +137,7 @@ export const mkThreadId = (fq_msg: FileQueueMessage) => {
    */
   const hashAnchor = _.join(hashAnchorParts, '~');
   const hash = crypto.createHash('sha256').update(hashAnchor).digest('hex');
-  const threadId = `dummy-thread-${hash}`;
+  threadId = `dummy-thread-${hash}`;
   log(' [i] generate a thread id for msg-id: %s : %s', broker_msg_id, threadId);
   return threadId;
 };
@@ -163,34 +161,34 @@ export function isTestStage(broker_topic: string): boolean {
 }
 
 export const makeTestCaseName = (body: any): string => {
-  let test_case_name: string = '';
+  let testCaseName: string = '';
   if (isMsgV1(body)) {
     const namespace = _.get(body, 'test.namespace');
     const type = _.get(body, 'test.type');
     const category = _.get(body, 'test.category');
     if (_.size(namespace) && _.size(type) && _.size(category)) {
-      test_case_name = `${namespace}.${type}.${category}`;
+      testCaseName = `${namespace}.${type}.${category}`;
     }
   } else if (isMsgV0(body)) {
     const namespace = _.get(body, 'namespace');
     const type = _.get(body, 'type');
     const category = _.get(body, 'category');
     if (_.size(namespace) && _.size(type) && _.size(category)) {
-      test_case_name = `${namespace}.${type}.${category}`;
+      testCaseName = `${namespace}.${type}.${category}`;
     }
   }
-  assert_is_valid(test_case_name, 'test_case_name');
-  return test_case_name;
+  assert_is_valid(testCaseName, 'test_case_name');
+  return testCaseName;
 };
 
 /** Messages can be for different stages: test / build */
 export const makeMessageData = (fq_msg: FileQueueMessage): MessageData => {
   const { broker_topic, broker_msg_id, body, broker_extra } = fq_msg;
   const messageData = {
-    msg_topic: broker_topic,
-    msg_id: broker_msg_id,
-    msg_body: body,
-    extra: broker_extra,
+    broker_extra,
+    broker_msg_id,
+    broker_msg_body: body,
+    broker_msg_topic: broker_topic,
   };
   return messageData;
 };
@@ -243,8 +241,3 @@ export function getHandler(broker_topic: string): THandler {
       | undefined,
   );
 }
-
-export const ContextToKojiInstance = {
-  fedora: 'fedoraproject',
-  centos: 'centos-stream',
-};
