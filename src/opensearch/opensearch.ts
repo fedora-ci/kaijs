@@ -25,15 +25,15 @@ import assert from 'assert';
 import { Client, ClientOptions } from '@opensearch-project/opensearch';
 
 import { getcfg } from '../cfg';
-import { metrics_up_broker, metrics_up_fq } from '../metrics';
-import { getHandler, NoNeedToProcessError } from './msg_handlers';
-import { NoAssociatedHandlerError } from './msg_handlers';
-
-import { assertMsgIsValid, NoValidationSchemaError } from '../validation';
-
-import { WrongVersionError } from '../validation_broker';
 import { FileQueueMessage } from '../fqueue';
 import { AJVValidationError } from '../validation_ajv';
+import { WrongVersionError } from '../validation_broker';
+import { assertMsgIsValid, NoValidationSchemaError } from '../validation';
+import {
+  getHandler,
+  NoNeedToProcessError,
+  NoAssociatedHandlerError,
+} from './msg_handlers';
 
 const log = debug('kaijs:opensearch');
 const cfg = getcfg();
@@ -87,17 +87,12 @@ export interface Upsert {
   routing?: string;
 }
 
-export const atype_to_hub_map = {
-  'koji-build': 'fedoraproject',
-  'koji-build-cs': 'centos-stream',
-};
-
 export interface Document {
+  /** Document based on a message from messages-broker */
+  message?: MessageData;
   /** Contains searchable entries */
   searchable?: TSearchable;
   '@timestamp'?: number;
-  /** Document based on a message from messages-broker */
-  message?: MessageData;
   /** Used for parent-child mapping */
   artifact_message: unknown;
 }
@@ -111,13 +106,13 @@ export interface MessageDataExtracted {
 
 export interface MessageData {
   /** Broker topic */
-  msg_topic: string;
+  broker_msg_topic: string;
   /** Broker message id */
-  msg_id: string;
+  broker_msg_id: string;
   /**
    * JSON document for message
    */
-  msg_body: any;
+  broker_msg_body: any;
   /**
    * Message headers.
    */
@@ -261,15 +256,15 @@ export interface SearchableContainerImage {
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.complete&delta=86400&contains=container_build
    */
   osbs_subtypes?: string[];
+  broker_msg_id_build_complete?: string;
 }
 
 export interface SearchableRedHatModule {
-  /** mbs id */
-  mbs_id: string;
   nvr: string;
-  issuer: string;
   nsvc: string;
   name: string;
+  mbs_id: string;
+  issuer: string;
   stream: string;
   version: string;
   context: string;
@@ -287,11 +282,12 @@ export interface SearchableFedoraModule
 
 export interface SearchableDistGitPR {
   uid: string;
+  issuer: string;
   repository: string;
   comment_id: string;
   commit_hash: string;
-  issuer: string;
 }
+
 export interface SearchableCompose {
   compose_id: string;
   /** nightly */
@@ -310,8 +306,6 @@ export interface ValidationErrorsDocument {
   broker_topic: string;
   /** Broker message id */
   broker_msg_id: string;
-  /** When the mongodb-document will be auto-removed */
-  expire_at: Date;
 }
 
 export type TSearchable =
@@ -419,17 +413,15 @@ export const printify = (obj: any): string => {
 };
 
 const mkInvalidMsgUpsert = (
-  fq_msg: FileQueueMessage,
-
+  fqMsg: FileQueueMessage,
   err:
-    | Joi.ValidationError
     | WrongVersionError
+    | AJVValidationError
+    | Joi.ValidationError
     | NoValidationSchemaError
-    | NoAssociatedHandlerError
-    | AJVValidationError,
+    | NoAssociatedHandlerError,
 ): Upsert => {
-  const expire_at = new Date();
-  let broker_msg = printify(fq_msg.body);
+  let broker_msg = printify(fqMsg.body);
   const size: number = Buffer.byteLength(broker_msg, 'utf8');
   if (size > 17800000) {
     broker_msg = 'Message is bigger then 16Mb. Cannot store.';
@@ -438,11 +430,10 @@ const mkInvalidMsgUpsert = (
     '@timestamp': new Date().toISOString(),
     broker_msg,
     errmsg: err instanceof Joi.ValidationError ? err.details : err.message,
-    expire_at,
-    broker_topic: fq_msg.broker_topic,
-    broker_msg_id: fq_msg.broker_msg_id,
+    broker_topic: fqMsg.broker_topic,
+    broker_msg_id: fqMsg.broker_msg_id,
   };
-  const docId = fq_msg.broker_msg_id;
+  const docId = fqMsg.broker_msg_id;
   const indexName = getIndexName('any', 'invalid-messages');
   const upsert: Upsert = {
     docId,
@@ -453,41 +444,39 @@ const mkInvalidMsgUpsert = (
 };
 
 export const getMsgUpserts = async (
-  fq_msg: FileQueueMessage,
+  fqMsg: FileQueueMessage,
 ): Promise<Upsert[]> => {
-  const { broker_topic, broker_msg_id } = fq_msg;
+  const { broker_topic, broker_msg_id } = fqMsg;
   /**
    * Verify for correctness of input message with associated schema.
    */
   let upserts: Upsert[] = [];
   try {
-    await assertMsgIsValid(fq_msg);
+    await assertMsgIsValid(fqMsg);
     const handler = getHandler(broker_topic);
     log(" [I] '%s', %s", broker_topic, broker_msg_id);
     if (_.isUndefined(handler)) {
       const metric_name = 'handler-' + broker_topic;
-      metrics_up_broker(metric_name, 'nack');
       log(' [E] No handler for topic: %s', broker_topic);
       const errmsg = `broker msg-id: ${broker_msg_id}: does not have associated handler for topic '${broker_topic}'.`;
       throw new NoAssociatedHandlerError(errmsg, broker_topic);
     }
-    upserts = await handler(fq_msg);
+    upserts = await handler(fqMsg);
   } catch (err) {
     if (
-      err instanceof Joi.ValidationError ||
       err instanceof WrongVersionError ||
+      err instanceof AJVValidationError ||
+      err instanceof Joi.ValidationError ||
       err instanceof NoValidationSchemaError ||
-      err instanceof NoAssociatedHandlerError ||
-      err instanceof AJVValidationError
+      err instanceof NoAssociatedHandlerError
     ) {
       log(
         ' [E] Validation error. Store message to special index. Message with broker msg-id: %s and file-queue message-id: %s.\nValidation error: %s.\n',
-        fq_msg.broker_msg_id,
-        fq_msg.fq_msg_id,
+        fqMsg.broker_msg_id,
+        fqMsg.fq_msg_id,
         err.message,
       );
-      metrics_up_fq('nack');
-      const upsert: Upsert = mkInvalidMsgUpsert(fq_msg, err);
+      const upsert: Upsert = mkInvalidMsgUpsert(fqMsg, err);
       upserts = [upsert];
     } else if (err instanceof NoNeedToProcessError) {
       /**
@@ -495,8 +484,8 @@ export const getMsgUpserts = async (
        */
       log(
         ' [i] Drop message as requested. Message with broker msg-id: %s and file-queue message-id: %s.\nReason: %s.\n',
-        fq_msg.broker_msg_id,
-        fq_msg.fq_msg_id,
+        fqMsg.broker_msg_id,
+        fqMsg.fq_msg_id,
         err.message,
       );
     }
@@ -538,7 +527,6 @@ export class OpensearchClient {
       throw new Error('Connection is not initialized');
     }
     log(' [I] Send bulk with %s upsert(s).', upserts.length);
-
     try {
       const body = _.flatMap(upserts, (upsert) => [
         {
@@ -561,31 +549,6 @@ export class OpensearchClient {
       this.fail('Bulk update failed.');
       throw err;
     }
-
-    /** 
-    try {
-      var response = await this.client.helpers.bulk({
-        datasource: upserts,
-        onDocument(upsert) {
-          const { indexName, docId, routing, upsertDoc } = upsert;
-          return [
-            {
-              update: { _index: indexName, _id: docId, routing },
-            },
-            { doc: upsertDoc, doc_as_upsert: true },
-          ];
-        },
-      });
-      this.log('Result of bulk action: %O', response);
-      assert(
-        response.successful === response.total,
-        'Number of successful messages is different from total entries in bulk.',
-      );
-    } catch (err) {
-      this.fail('Bulk update failed.');
-      throw err;
-    }
-    */
   }
 
   async close(): Promise<void> {

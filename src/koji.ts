@@ -28,8 +28,8 @@ const log = debug('kaijs:kojibrew');
 const cfg = getcfg();
 
 export const koji_clients = {
-  fedoraproject: xmlrpc.createSecureClient(cfg.koji_fp),
-  'centos-stream': xmlrpc.createSecureClient(cfg.koji_cs),
+  fedora: xmlrpc.createSecureClient(cfg.koji_fp),
+  centos: xmlrpc.createSecureClient(cfg.koji_cs),
 };
 
 interface BuildInfo {
@@ -148,7 +148,7 @@ export const koji_query = async (
             log("Response for '%s':\n%o", method, value);
             resolve(value);
           }
-        }
+        },
       );
     });
   });
