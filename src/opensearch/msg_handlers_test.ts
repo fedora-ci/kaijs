@@ -72,7 +72,7 @@ import {
 import { FileQueueMessage } from '../fqueue';
 import { assert_is_valid } from '../validation';
 
-const log = debug('kaijs:msg_handlers_rpm_build');
+const log = debug('kaijs:msg_handlers_test');
 
 /**
  * V1 - Schema for messages with version >= 1.0.0
@@ -318,7 +318,6 @@ const handlerComposeTest = async (
   const { broker_msg_id, body } = fq_msg;
   const { artifact } = body;
   const artifact_type = artifact.type;
-  const compose_id = artifact.id;
   const searchable = mkSearchable(fq_msg, searchableComposeTestHandlers);
   /** used to make parent document ID */
   const docId = broker_msg_id;
