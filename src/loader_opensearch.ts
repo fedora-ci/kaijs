@@ -32,10 +32,10 @@ import { getcfg, mkDirParents } from './cfg';
 import { getAllSchemas } from './get_schema';
 
 import {
+  Upsert,
+  printify,
   getMsgUpserts,
   OpensearchClient,
-  printify,
-  Upsert,
 } from './opensearch/opensearch';
 
 import { schemas } from './validation';
@@ -118,8 +118,7 @@ const rollbackAndExit = (err: unknown, fqEntries: FileQueueEntry[]) => {
   if (_.isError(err)) {
     /** err object can have many different properties. To dump all details abot err we use printify */
     log(
-      ' [E] Cannot update DB with received messages.',
-      'Error is:',
+      ' [E] Cannot update DB with received messages. Error is: %s',
       printify(err),
     );
   } else {
