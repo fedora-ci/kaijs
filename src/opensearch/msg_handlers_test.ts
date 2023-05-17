@@ -253,10 +253,10 @@ const handlerRpmTest = async (
   assert_is_valid(artifact, 'valid_artifact_issuer');
   /** used to make parent document ID */
   const docId = broker_msg_id;
-  const artifact_type = artifact.type;
+  const artifactType = artifact.type;
   const searchable = mkSearchable(fq_msg, searchableRpmTestHandlers);
   const parentDocId = mkParentDocId(fq_msg);
-  const indexName: string = getIndexName(artifactContext, artifact_type);
+  const indexName: string = getIndexName(artifactContext, artifactType);
   const messageData = makeMessageData(fq_msg);
   const upsertDoc: Document = {
     searchable,
@@ -340,7 +340,7 @@ const handlerComposeTest = async (
     upsertDoc,
     routing,
   };
-  log(' [i] handlerRpmTest updated doc: %s%o', '\n', upsert);
+  log(' [i] handlerComposeTest updated doc: %s%o', '\n', upsert);
   return [upsert];
 };
 

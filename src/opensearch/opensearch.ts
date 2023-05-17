@@ -61,6 +61,12 @@ export const getIndexName = (
   } else if (artifactConext === 'centos') {
     if (artifactType === 'koji-build-cs') {
       indexName = 'centos-rpm';
+    } else if (artifactType === 'koji-build') {
+      /**
+       *   "topic": "org.centos.prod.ci.koji-build.test.running"
+       *   "nvr": "glances-3.4.0-1.fc39",
+       */
+      indexName = 'fedora-rpm';
     }
   } else if (artifactConext === 'fedora') {
     if (artifactType === 'koji-build') {
@@ -74,7 +80,9 @@ export const getIndexName = (
     }
   }
   if (!indexName) {
-    throw `Cannot get index name for artifact type: ${artifactType} and context: ${artifactConext}`;
+    throw new Error(
+      `Cannot get index name for artifact type: ${artifactType} and context: ${artifactConext}`,
+    );
   }
   const prefix = cfg.loader.opensearch.indexes_prefix;
   return `${prefix}${indexName}`;
@@ -400,7 +408,7 @@ export class OpensearchDocumentError extends Error {
 
 export const printify = (obj: any): string => {
   var cache: any[] = [];
-  function circular_ok(key: string, value: any) {
+  function circular_ok(_key: string, value: any) {
     if (typeof value === 'object' && value !== null) {
       if (cache.indexOf(value) !== -1) {
         return;
@@ -409,7 +417,14 @@ export const printify = (obj: any): string => {
     }
     return value;
   }
-  return JSON.stringify(obj, circular_ok, 2);
+  /** JSON.stringify does not preserve any of the not-owned properties and not-enumerable properties of the object */
+  return JSON.stringify(
+    _.defaultsDeep(_.toPlainObject(obj), [
+      _.pick(obj, Object.getOwnPropertyNames(obj)),
+    ]),
+    circular_ok,
+    2,
+  );
 };
 
 const mkInvalidMsgUpsert = (
@@ -488,6 +503,8 @@ export const getMsgUpserts = async (
         fqMsg.fq_msg_id,
         err.message,
       );
+    } else {
+      throw err;
     }
   }
   return upserts;
