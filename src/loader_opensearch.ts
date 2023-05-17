@@ -76,6 +76,62 @@ async function handle_signal(
   process.exit(0);
 }
 
+/**
+ * The encodeURI() function replaces each non-ASCII character in the string with a percent-encoded representation,
+ * which is a sequence of three characters. By splitting the encoded string on these sequences and counting the resulting
+ * array length, we can determine the number of bytes in the original string.
+ */
+function getObjectSize(obj: any): number {
+  const objectString = JSON.stringify(obj);
+  const utf8Length = encodeURI(objectString).split(/%..|./).length - 1;
+  return utf8Length;
+}
+
+function rollbackFqMessages(fqEntries: FileQueueEntry[]) {
+  for (let fq_entry of fqEntries) {
+    log(
+      ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
+      fq_entry.message.broker_msg_id,
+    );
+    fq_entry.rollback((err: Error) => {
+      if (err) throw err;
+    });
+  }
+}
+
+function commitFqMessages(fqEntries: FileQueueEntry[]) {
+  for (let fq_entry of fqEntries) {
+    /**
+     * Message was processed. Release message from file-queue.
+     */
+    log(
+      ' [i] Message was processed. Broker msg-id %s.',
+      fq_entry.message.broker_msg_id,
+    );
+    fq_entry.commit((err: Error) => {
+      if (err) throw err;
+    });
+  }
+}
+
+const rollbackAndExit = (err: unknown, fqEntries: FileQueueEntry[]) => {
+  if (_.isError(err)) {
+    /** err object can have many different properties. To dump all details abot err we use printify */
+    log(
+      ' [E] Cannot update DB with received messages.',
+      'Error is:',
+      printify(err),
+    );
+  } else {
+    throw err;
+  }
+  rollbackFqMessages(fqEntries);
+  /**
+   * Exit from programm.
+   */
+  process.exit(1);
+};
+
 async function start(): Promise<never> {
   file_queue_path = mkDirParents(file_queue_path_cfg);
   log('File-queue path: %s', file_queue_path);
@@ -105,44 +161,6 @@ async function start(): Promise<never> {
   );
   cron.schedule(cronExprShemas, getAllSchemas);
 
-  /**
-   * The encodeURI() function replaces each non-ASCII character in the string with a percent-encoded representation,
-   * which is a sequence of three characters. By splitting the encoded string on these sequences and counting the resulting
-   * array length, we can determine the number of bytes in the original string.
-   */
-  function getObjectSize(obj: any): number {
-    const objectString = JSON.stringify(obj);
-    const utf8Length = encodeURI(objectString).split(/%..|./).length - 1;
-    return utf8Length;
-  }
-
-  function rollbackFqMessages(fqEntries: FileQueueEntry[]) {
-    for (let fq_entry of fqEntries) {
-      log(
-        ' [i] Make file-queue item again available for popping. Broker msg-id: %s.',
-        fq_entry.message.broker_msg_id,
-      );
-      fq_entry.rollback((err: Error) => {
-        if (err) throw err;
-      });
-    }
-  }
-
-  function commitFqMessages(fqEntries: FileQueueEntry[]) {
-    for (let fq_entry of fqEntries) {
-      /**
-       * Message was processed. Release message from file-queue.
-       */
-      log(
-        ' [i] Message was processed. Broker msg-id %s.',
-        fq_entry.message.broker_msg_id,
-      );
-      fq_entry.commit((err: Error) => {
-        if (err) throw err;
-      });
-    }
-  }
-
   let fqEntries: FileQueueEntry[] = [];
   let bulkUpserts: Upsert[] = [];
   let bulkSizeBytes = 0;
@@ -154,12 +172,12 @@ async function start(): Promise<never> {
 
   while (true) {
     let fq_msg: FileQueueMessage;
-    let fq_commit: FileQueueCallback, fq_rollback: FileQueueCallback;
     let fq_entry: FileQueueEntry;
+    let fq_commit: FileQueueCallback;
     try {
       log(' [i] Waiting for next fq message...');
       fq_entry = await fq.tpop(fqueue);
-      [fq_msg, fq_commit, fq_rollback] = [
+      [fq_msg, fq_commit] = [
         fq_entry.message,
         fq_entry.commit,
         fq_entry.rollback,
@@ -186,17 +204,29 @@ async function start(): Promise<never> {
       ' [i] Adding message to DB with file-queue message id %O.',
       fq_msg.fq_msg_id,
     );
+    fqEntries.push(fq_entry);
     const newMsgTime = new Date();
     const secondsBetweenMessages =
       (newMsgTime.getTime() - prevMsgTime.getTime()) / 1000;
     prevMsgTime = newMsgTime;
-    const msgUpserts = await getMsgUpserts(fq_msg);
+    let msgUpserts: Upsert[];
+    try {
+      msgUpserts = await getMsgUpserts(fq_msg);
+    } catch (err) {
+      rollbackAndExit(err, fqEntries);
+      /** TS cannot track exit in previous function call */
+      process.exit(1);
+    }
+    log(
+      ' [I] msg with id %s produced %s upserts',
+      fq_msg.broker_msg_id,
+      msgUpserts.length,
+    );
     const upsertsSizeBytes = _.sum(
       _.map(msgUpserts, (upsert) => getObjectSize(upsert.upsertDoc)),
     );
     bulkSizeBytes += upsertsSizeBytes;
     bulkUpserts = [...bulkUpserts, ...msgUpserts];
-    fqEntries.push(fq_entry);
     if (
       secondsBetweenMessages < bulkSecondsThreshold &&
       bulkUpserts.length < bulkMaxEntries &&
@@ -212,21 +242,7 @@ async function start(): Promise<never> {
       commitFqMessages(fqEntries);
       fqEntries = [];
     } catch (err) {
-      if (_.isError(err)) {
-        /** err object can have many different properties. To dump all details abot err we use printify */
-        log(
-          ' [E] Cannot update DB with received messages.',
-          'Error is:',
-          printify(err),
-        );
-      } else {
-        throw err;
-      }
-      rollbackFqMessages(fqEntries);
-      /**
-       * Exit from programm.
-       */
-      process.exit(1);
+      rollbackAndExit(err, fqEntries);
     }
   }
 }
