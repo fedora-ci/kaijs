@@ -225,7 +225,7 @@ const handler_brew_build_complete = async (
   }
   log(' [i] handler_brew_build_complete updated doc: %s%o', '\n', searchable);
   const docId = `${artifactType}-${artifactId}`;
-  const indexName: string = getIndexName('fedora', artifactType);
+  const indexName: string = getIndexName('redhat', artifactType);
   const upsertDoc: Document = {
     searchable,
     '@timestamp': 0,

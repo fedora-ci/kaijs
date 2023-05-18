@@ -113,7 +113,7 @@ const handler_buildsys_tag = async (
   artifactType = 'koji-build';
   artifactId = _.toString(searchable.task_id);
   const docId = `${artifactType}-${artifactId}`;
-  const indexName: string = getIndexName('redhat', artifactType);
+  const indexName: string = getIndexName(artifactContext, artifactType);
   const upsertDoc: Document = {
     searchable,
     '@timestamp': 0,
