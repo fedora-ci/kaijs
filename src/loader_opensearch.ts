@@ -114,13 +114,20 @@ function commitFqMessages(fqEntries: FileQueueEntry[]) {
   }
 }
 
-const rollbackAndExit = (err: unknown, fqEntries: FileQueueEntry[]) => {
+const rollbackAndExit = (
+  err: unknown,
+  fqEntries: FileQueueEntry[],
+  fq_msg?: FileQueueMessage,
+) => {
   if (_.isError(err)) {
     /** err object can have many different properties. To dump all details abot err we use printify */
     log(
       ' [E] Cannot update DB with received messages. Error is: %s',
       printify(err),
     );
+    if (fq_msg) {
+      log(' [E] Message that coused error: %s', printify(fq_msg));
+    }
   } else {
     throw err;
   }
@@ -212,7 +219,7 @@ async function start(): Promise<never> {
     try {
       msgUpserts = await getMsgUpserts(fq_msg);
     } catch (err) {
-      rollbackAndExit(err, fqEntries);
+      rollbackAndExit(err, fqEntries, fq_msg);
       /** TS cannot track exit in previous function call */
       process.exit(1);
     }
