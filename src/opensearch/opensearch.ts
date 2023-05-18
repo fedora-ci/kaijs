@@ -57,6 +57,8 @@ export const getIndexName = (
       indexName = 'redhat-compose';
     } else if (artifactType === 'redhat-module') {
       indexName = 'redhat-module';
+    } else if (artifactType === 'redhat-container-image') {
+      indexName = 'redhat-container-image';
     }
   } else if (artifactConext === 'centos') {
     if (artifactType === 'koji-build-cs') {
