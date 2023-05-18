@@ -217,6 +217,7 @@ async function start(): Promise<never> {
     prevMsgTime = newMsgTime;
     let msgUpserts: Upsert[];
     try {
+      /** Can produce 0 upserts, for example when message is discarded */
       msgUpserts = await getMsgUpserts(fq_msg);
     } catch (err) {
       rollbackAndExit(err, fqEntries, fq_msg);
@@ -234,9 +235,10 @@ async function start(): Promise<never> {
     bulkSizeBytes += upsertsSizeBytes;
     bulkUpserts = [...bulkUpserts, ...msgUpserts];
     if (
-      secondsBetweenMessages < bulkSecondsThreshold &&
-      bulkUpserts.length < bulkMaxEntries &&
-      bulkSizeBytes < bulkMaxSize
+      (secondsBetweenMessages < bulkSecondsThreshold &&
+        bulkUpserts.length < bulkMaxEntries &&
+        bulkSizeBytes < bulkMaxSize) ||
+      bulkUpserts.length === 0
     ) {
       continue;
     }
