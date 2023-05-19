@@ -455,9 +455,9 @@ handlers.set(
  */
 handlers.set(
   /^org.centos.prod.ci.fedora-module.test.(complete|queued|running|error)$/,
-  handlerMbsTestRedhat,
+  handlerMbsTestFedora,
 );
 handlers.set(
   /^VirtualTopic\.eng\.ci(\.[\w-]+)?\.redhat-module\.test\.(complete|queued|running|error)$/,
-  handlerMbsTestFedora,
+  handlerMbsTestRedhat,
 );
