@@ -1,0 +1,851 @@
+# https://opensearch.org/docs/latest/query-dsl/full-text/#simple-query-string
+# https://opensearch.org/docs/2.7/search-plugins/sql/sql-ppl-api/
+# https://opensearch.org/docs/latest/query-dsl/full-text/
+# https://opensearch.org/docs/latest/analyzers/text-analyzers/
+# https://medium.com/swlh/parent-and-child-joins-with-elasticsearch-7-381f6cca73fe
+# https://www.elastic.co/blog/ttl-documents-shield-and-found
+#
+
+GET _cat/indices
+GET _cat/indices/dev-*?v=true&s=index
+DELETE invalid_messages
+DELETE dev-redhat-rpm
+GET dev-redhat-rpm/_mapping
+GET redhat-rpm/_mapping
+GET invalid_messages/_mapping/field/errmsg
+GET invalid_messages
+GET /invalid_messages,artifacts/_count
+PUT invalid_messages/_mapping
+{
+ "properties": {
+  "broker_msg": {
+   "type": "text"
+  }
+ }
+}
+
+POST _plugins/_ppl/
+{
+  "query" : "source=dev-*"
+}
+
+POST _plugins/_ppl/
+{
+  "query" : "source=dev-* | stats"
+}
+
+
+GET dev-*/_search
+{
+  "query": {
+    "fuzzy": {
+      "searchable.nvr.keyword": {
+        "value": "kernel-5.14.-316.el9"
+      }
+    }
+  }
+}
+
+# nvr will not be listed
+GET dev-redhat-rpm/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "kernel",
+      "fields": ["searchable.nvr", "searchable.component"]
+    }
+  }
+}
+
+GET dev-redhat-rpm/_search
+{
+  "query": {
+    "simple_query_string": {
+      "query": "kerned~3"
+    }
+  }
+}
+
+
+GET dev-redhat-rpm/_search
+{
+  "query": {
+    "match": {
+      "searchable.component": {
+        "query": "kerne",
+        "fuzziness": "2"
+      }
+    }
+  }
+}
+
+
+
+GET dev-redhat-rpm/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "virtualTopic.eng.ci.baseos-ci.brew-build.test.complete",
+      "fields": ["searchable.*.keyword"]
+    }
+  }
+}
+
+
+GET dev-redhat-rpm/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "ID:umb-prod-3.umb-001.prod.us-east-1.aws.redhat.com-33455-1684340633490-7:451440:0:0:1",
+      "fields": ["_id"]
+    }
+  }
+}
+
+# Important example: that "keyword" term query doesn't work for lowcase., Add: "fuzziness": "2" or v -> V
+GET dev-*/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "virtualTopic.eng.ci.kernel-qe.brew-build.test.complete",
+      "fields": ["searchable.*.keyword"]
+    }
+  }
+}
+
+
+
+GET /dev-fedora-rpm/_termvectors/koji-build-2242120
+{
+  "fields" : ["searchable.nvr", "searchable.nvr.keyword"],
+  "term_statistics" : true,
+  "field_statistics" : true
+}
+
+#            "broker_topic": "VirtualTopic.eng.ci.osci.brew-build.test.queued"
+GET /dev-redhat-rpm/_termvectors/ID:osci-jenkins-master-0-34141-1684388776318-10371:1:1:1:1?routing=brew-build-52774536
+{
+  "fields" : ["searchable.broker_topic", "searchable.broker_topic.keyword", "*"],
+  "term_statistics" : true,
+  "field_statistics" : true
+}
+
+GET /dev-redhat-module/_doc/ID:umb-prod-3.umb-001.prod.us-east-1.aws.redhat.com-33455-1684340633490-7:271676:0:0:1?routing=redhat-module-18869
+
+GET /dev-redhat-module/_doc/ID%3Aumb-prod-3.umb-001.prod.us-east-1.aws.redhat.com-33455-1684340633490-7%3A271676%3A0%3A0%3A1
+
+
+GET /dev-redhat-module/_search
+{
+  "query": {
+    "term": {
+      "_id": "ID:umb-prod-3.umb-001.prod.us-east-1.aws.redhat.com-33455-1684340633490-7:271676:0:0:1"
+    }
+  }
+}
+
+
+GET /dev-redhat-rpm/_search
+{
+  "size": 10,
+  "query": {
+    "match_all": {}
+  }
+}
+
+
+
+GET dev-*/_search
+{
+  "query": {
+    "prefix": {
+      "searchable.nvr": "lsco"
+    }
+  }
+}
+
+
+# https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-reindex.html
+
+GET _refresh
+
+POST _reindex
+{
+  "source": {
+    "index": "artifacts"
+  },
+  "dest": {
+    "index": "a1"
+  }
+}
+
+
+GET dev-invalid-messages/_search
+{
+    "query": {
+        "match_all": {}
+    }
+}
+
+GET dev-*/_search
+{
+  "query": {
+    "multi_match" : {
+      "query":    "822b521a3f21a7db872ec508c23d22d12179602d"
+    }
+  }
+}
+
+
+
+POST /artifacts/_update/1asd
+{
+  "doc": {
+    "first_name" : "Bruce 2",
+    "last_name" : "Wayne 1"
+  },
+    "doc_as_upsert": true
+}
+
+
+
+
+GET /artifacts/_doc/1asd
+
+GET /invalid_messages/_doc/ID:mastern-jenkins-csb-openshift-qe-36435-1674767581275-3871:1:1:1:1
+GET /redhat-rpm/_doc/ID:main-jenkins-csb-insights-qe-33373-1674040543736-2297:1:1:1:1
+GET /redhat-rpm/_doc/p-sDj4cBZIytAXXeFmDr
+DELETE redhat-rpm
+DELETE dev-invalid-messages
+
+GET redhat-rpm/_mapping
+
+// All childs
+
+GET redhat-rpm/_search
+{
+   "query":{
+      "parent_id":{
+         "type":"message",
+         "id":"brew-build-51096010"
+      }
+   }
+}
+
+
+PUT invalid_messages
+{
+  "mappings": {
+        "dynamic": false
+  }
+}
+
+
+PUT redhat-rpm
+{
+    "mappings": {
+        "dynamic": false,
+        "properties": {
+            "artifact_message": {
+                "type": "join",
+                "relations": {
+                    "artifact": "message"
+                }
+            }
+        }
+    }
+}
+
+GET _cat/templates
+
+GET _index_template/artifacts
+DELETE _index_template/artifacts
+DELETE _index_template/invalid-messages
+
+PUT _index_template/artifacts
+{
+  "index_patterns": [
+    "dev-redhat-*",
+    "dev-centos-*",
+    "dev-fedora-*",
+    "test-redhat-*",
+    "test-centos-*",
+    "test-fedora-*"
+  ],
+  "template": {
+    "aliases": {
+      "artifacts": {}
+    },
+    "settings": {
+      "number_of_shards": 2,
+      "number_of_replicas": 1,
+      "index": {
+        "mapping": {
+          "coerce": true
+        },
+        "analysis": {
+          "normalizer": {
+            "lowercase_normalizer": {
+              "type": "custom",
+              "filter": [
+                "lowercase"
+              ]
+            }
+          },
+          "analyzer": {
+            "dot_analyzer": {
+              "tokenizer": "dot_tokenizer"
+            }
+          },
+          "tokenizer": {
+            "dot_tokenizer": {
+              "type": "pattern",
+              "pattern": "\\."
+            }
+          }
+        }
+      }
+    },
+    "mappings": {
+      "dynamic": false,
+      "properties": {
+        "artifact_message": {
+          "type": "join",
+          "relations": {
+            "artifact": "message"
+          }
+        },
+        "searchable": {
+          "type": "object",
+          "dynamic": true
+        }
+      },
+      "dynamic_templates": [
+        {
+          "lowercase_keyword_fields": {
+            "match_mapping_type": "string",
+            "mapping": {
+              "type": "text",
+              "analyzer": "dot_analyzer",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "normalizer": "lowercase_normalizer",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+
+
+PUT _index_template/artifacts
+{
+  "index_patterns": [
+    "dev-redhat-*",
+    "dev-centos-*",
+    "dev-fedora-*",
+    "test-redhat-*",
+    "test-centos-*",
+    "test-fedora-*"
+  ],
+  "template": {
+    "aliases": {
+      "artifacts": {}
+    },
+    "settings": {
+      "number_of_shards": 2,
+      "number_of_replicas": 1,
+      "index": {
+        "mapping": {
+          "coerce": true
+        },
+        "analysis": {
+          "tokenizer": {
+            "custom_tokenizer": {
+              "type": "whitespace"
+            }
+          },
+          "analyzer": {
+            "custom_analyzer": {
+              "type": "custom",
+              "tokenizer": "custom_tokenizer",
+              "filter": [
+                "lowercase"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "mappings": {
+      "dynamic": false,
+      "properties": {
+        "artifact_message": {
+          "type": "join",
+          "relations": {
+            "artifact": "message"
+          }
+        },
+        "searchable": {
+          "type": "object",
+          "dynamic": true
+        }
+      },
+      "dynamic_templates": [
+        {
+          "lowercase_keyword_fields": {
+            "match_mapping_type": "string",
+            "mapping": {
+              "type": "text",
+              "analyzer": "custom_analyzer"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+
+
+
+
+
+
+POST _reindex
+{
+  "source": {
+    "index": "dev-redhat-rpm4"
+  },
+  "dest": {
+    "index": "dev-redhat-rpm"
+  }
+}
+
+
+
+
+
+
+
+
+
+
+PUT _index_template/invalid-messages
+{
+  "index_patterns": [
+    "dev-invalid-messages",
+    "test-invalid-messages"
+  ],
+  "template": {
+    "aliases": {
+      "invalid-messages": {}
+    },
+    "settings": {
+      "number_of_shards": 2,
+      "number_of_replicas": 1
+    },
+    "mappings": {
+      "dynamic": false,
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "broker_msg": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "broker_msg_id": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "broker_topic": {
+          "type": "text",
+          "fields": {
+                 "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+GET redhat-rpm/_search?pretty=true
+{
+  "query": {
+    "has_parent": {
+      "parent_type": "artifact",
+         "query":{
+            "match":{
+               "gender":"Female"
+            }
+         }
+    }
+  }
+}
+
+POST /redhat-rpm/_doc/
+{
+  "searchable": {
+    "task_id": 50220682
+  },
+  "artifact_message": {
+    "name": "message",
+    "parent": "brew-build-50220682"
+  }
+}
+
+
+
+
+POST /a1/_doc/
+{
+  "test": {
+
+      "entry" : { "one" : 123.001 }
+
+  }
+}
+
+POST /a1/_doc/
+{
+  "test": "123"
+}
+
+POST /a1/_doc/
+{
+  "test": 123
+}
+
+
+POST a1/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "123",
+      "fields": ["all_fields"]
+    }
+  },
+  "_source": false
+}
+
+GET a1/_mapping
+DELETE a1
+GET /a1/_termvectors/6OvRMocBZIytAXXem1__
+{
+  "fields" : ["*"],
+  "term_statistics" : true,
+  "field_statistics" : true
+}
+
+
+# https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-store.html
+
+GET _nodes/ingest?filter_path=nodes.*.ingest.processors
+
+
+
+PUT a1
+{
+  "mappings": {
+    "dynamic": false,
+    "properties": {
+      "all_fields": {
+        "type": "text"
+      },
+      "test": {
+        "type": "object",
+        "fields": {
+          "test": { 
+            "type":     "text"
+            }
+        }
+      }
+    }
+  }
+}
+
+
+
+
+
+PUT a1
+{
+  "mappings": {
+    "dynamic": false,
+    "dynamic_templates": [
+      {
+        "any_text": {
+          "path_match": "test2.ci.*",
+          "match_mapping_type": "string",
+          "mapping": {
+            "index":  false,
+            "copy_to": [
+              "all_fields"
+            ]
+          }
+        }
+      },
+      {
+      "no_index": {
+          "path_match": "test2.ci.*",
+                    "match_mapping_type": "object",
+          "mapping": {
+            "dynamic" : false,
+            "index": false
+          }
+        }
+      }
+    ],
+    "properties": {
+      "all_fields": {
+        "type": "text",
+        "store": true
+      },
+      "test.artifact.id": {
+        "type": "text",
+        "copy_to": [
+          "all_fields"
+        ]
+      },
+      "test.artifact.nvr": {
+        "type": "text",
+        "copy_to": [
+          "all_fields"
+        ]
+      },
+      "test2": {
+        "type": "object",
+        "dynamic": true
+      }
+    }
+  }
+}
+
+POST a1/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "tft",
+      "fields": ["all_fields"]
+    }
+  },
+  "_source": false
+}
+
+POST a1/_search
+{
+  "query": {
+    "match_phrase": {
+      "test.artifact.id": "35875641"
+    }
+  },
+  "_source": false
+}
+
+GET /a1/_termvectors/6OvRMocBZIytAXXem1__
+{
+  "fields" : ["*"],
+  "term_statistics" : true,
+  "field_statistics" : true
+}
+
+GET /invalid_messages/_termvectors/ID:jenkins-1-gjfmc-45589-1616530127527-37315:1:1:1:1
+{
+  "fields": [
+    "*"
+  ],
+  "term_statistics": true,
+  "field_statistics": true
+}
+
+GET a1/_mapping
+
+
+GET artifacts/_search?size=3&pretty=true&q=*:*
+GET invalid_messages/_search
+POST invalid_messages,artifacts/_update_by_query
+POST invalid_messages/_search
+{
+  "query": {
+    "match": {
+      "broker_msg_id": {
+        "query": "gskrk"
+      }
+    }
+  },
+  "_source": {
+    "includes": [
+      "artifact.*",
+      "generated_at"
+    ]
+  }
+}
+
+PUT artifacts
+{
+  "mappings": {
+    "_doc": {
+      "properties": {
+        "_all": {
+          "enabled": true
+        }
+      }
+    }
+  }
+}
+
+POST invalid_messages/_search
+{
+  "query": {
+    "match_phrase": {
+      "broker_msg_id": "id:jenkins-3-fv2cf-33301-1617018717289-84675:1:1:1:1"
+    }
+  },
+  "_source": true
+}
+
+
+POST invalid_messages/_analyze?pretty
+{
+  "analyzer": "standard",
+  "text": "ID:jenkins-1-gskrk-36161-1616495422685-9177:1:1:1:1"
+}
+
+
+GET my-index-000001/_mapping
+PUT my-index-000001
+{
+  "mappings": {
+    "dynamic": false
+  }
+}
+PUT my-index-000001
+{
+  "mappings": {
+    "dynamic": false, 
+    "properties": {
+      "user": { 
+        "properties": {
+          "name": {
+            "type": "text"
+          },
+          "social_networks": {
+            "dynamic": true, 
+            "properties": {}
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+GET _search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+GET /_nodes
+
+PUT test
+{
+    "settings": {
+        "index": {
+            "number_of_shards": 2,
+            "number_of_replicas": 1
+        }
+    },
+    "mappings": {
+        "properties": {
+            "relation_type": {
+                "type": "join",
+                "eager_global_ordinals": true,
+                "relations": {
+                    "parent":[ "child", "wife" ],
+                    "child":"grandchild"
+                }
+            }
+        }
+    }
+}
+
+POST test/_doc/?routing=Darren
+{
+    "firstName":"Pearl",
+    "lastName":"Ford",
+    "gender":"Female",
+    "isAlive":true,
+    "relation_type":{
+        "name":"child",
+        "parent":"102020"
+    }
+}
+
+GET test/_doc/ZOsr8IYBZIytAXXeCF7o
+
+GET test/_doc/102020
+
+
+GET test/_search?pretty=true
+{   "query":{
+      "parent_id":{
+         "type":"child",
+         "id":"102020"
+      }
+   }
+}
+
+GET test/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "sort": ["_id"]
+}
+
+PUT test/user/_doc/1
+{
+  "name":     "John Smith",
+  "email":    "john@smith.com",
+  "dob":      "1970/10/24"
+}
+
+
+
+PUT test/user/_doc/1
+{
+ "name" : "Isaac Newton", 
+ "age":  14,
+ "performance": "honor student"
+}
