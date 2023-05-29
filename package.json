@@ -17,7 +17,7 @@
   "license": "LGPLv3+",
   "dependencies": {
     "@types/amqplib": "^0.10.1",
-    "@types/debug": "^4.1.6",
+    "@types/debug": "^4.1.8",
     "@types/lodash": "^4.14.195",
     "@types/uuid": "^9.0.1",
     "ajv": "^8.11.0",
