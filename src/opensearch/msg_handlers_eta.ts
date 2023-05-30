@@ -30,11 +30,12 @@ import debug from 'debug';
 import { TGetSearchable, TSearchableHandlersSet } from './msg_handlers';
 import { FileQueueMessage } from '../fqueue';
 import {
-  Upsert,
+  Update,
   Document,
   getIndexName,
-  SearchableEta,
+  SearchableRpm,
   ArtifactContext,
+  SearchableEtaRpm,
 } from './opensearch';
 import {
   THandler,
@@ -45,24 +46,34 @@ import {
 
 const log = debug('kaijs:msg_handlers_eta');
 
-const mkSearchableEta = (fq_msg: FileQueueMessage): SearchableEta => {
+const mkSearchableEta = (fq_msg: FileQueueMessage): SearchableEtaRpm => {
   const { broker_topic, broker_msg_id, body } = fq_msg;
-  const msg_timestamp = Date.parse(_.get(body, 'msg_timestamp'));
 
-  var searchable: SearchableEta = {
+  var searchable: SearchableEtaRpm = {
     task_id: _.get(body, 'task_id'),
     type: 'brew-build',
     broker_msg_id,
     broker_topic,
     component: _.get(body, 'package_name'),
     nvr: _.get(body, 'nvr'),
-    msg_timestamp,
-    owner: _.get(body, 'owner'),
+    issuer: _.get(body, 'owner'),
     ci_run_explanation: _.get(body, 'ci_run_explanation'),
     ci_run_outcome: _.get(body, 'ci_run_outcome'),
     ci_run_url: _.get(body, 'ci_run_url'),
   };
 
+  return searchable;
+};
+
+const mkSearchableEtaParent = (fq_msg: FileQueueMessage): SearchableRpm => {
+  const { body } = fq_msg;
+  var searchable: SearchableRpm = {
+    nvr: _.get(body, 'nvr'),
+    type: 'brew-build',
+    issuer: _.get(body, 'owner'),
+    task_id: _.get(body, 'task_id'),
+    component: _.get(body, 'package_name'),
+  };
   return searchable;
 };
 
@@ -77,39 +88,67 @@ const searchableEtaHandlers: TSearchableHandlersSet = new Map<
   RegExp,
   TGetSearchable
 >();
+const searchableEtaParentHandlers: TSearchableHandlersSet = new Map<
+  RegExp,
+  TGetSearchable
+>();
 
 searchableEtaHandlers.set(/^.*$/, mkSearchableEta);
+searchableEtaParentHandlers.set(/^.*$/, mkSearchableEtaParent);
 
 const handlerCommon = async (
   artifactContext: ArtifactContext,
   fq_msg: FileQueueMessage,
-): Promise<Upsert[]> => {
-  const { broker_msg_id } = fq_msg;
+): Promise<Update[]> => {
+  const { broker_msg_id, broker_extra } = fq_msg;
   const type = 'brew-build';
   /** ETA messages can have task_id == null, these messages will be dropped by validation */
   const docId = broker_msg_id;
   const artifactType = 'brew-build';
-  const searchable = mkSearchable(fq_msg, searchableEtaHandlers);
+  const searchable = mkSearchable(
+    fq_msg,
+    searchableEtaHandlers,
+  ) as SearchableEtaRpm;
+  const searchableParent = mkSearchable(
+    fq_msg,
+    searchableEtaParentHandlers,
+  ) as SearchableRpm;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifactType);
   const messageData = makeMessageData(fq_msg);
-  const upsertDoc: Document = {
+  const doc: Document = {
     searchable,
-    '@timestamp': 0,
+    '@timestamp': broker_extra.timestamp,
     message: messageData,
     artifact_message: {
       name: 'message',
       parent: parentDocId,
     },
   };
-  const routing = parentDocId;
-  const upsert: Upsert = {
-    docId,
-    indexName,
-    upsertDoc,
-    routing,
+  const parentDoc: Document = {
+    searchable: searchableParent,
+    '@timestamp': broker_extra.timestamp,
+    artifact_message: {
+      name: 'artifact',
+    },
   };
-  log(' [i] handlerRpmTest updated doc: %s%o', '\n', upsert);
+  const routing = parentDocId;
+  const upsert: Update = {
+    doc,
+    docId,
+    routing,
+    indexName,
+    doc_as_upsert: true,
+  };
+  const updateForParent: Update = {
+    docId: parentDocId,
+    /* upsert() - jumps into action, only, and only if, there is no document */
+    upsert: parentDoc,
+    routing,
+    indexName,
+    doc_as_upsert: false,
+  };
+  log(' [i] handlerCommon updated doc: %s%o', '\n', upsert);
   return [upsert];
 };
 

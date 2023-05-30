@@ -28,12 +28,12 @@ import { handlers as handlersEta } from './msg_handlers_eta';
 import { handlers as handlersBrew } from './msg_handlers_brew';
 import { handlers as handlersKoji } from './msg_handlers_koji';
 import { handlers as handlersTest } from './msg_handlers_test';
-import { MessageData, TSearchable, Upsert } from './opensearch';
+import { MessageData, TSearchable, Update } from './opensearch';
 
 const log = debug('kaijs:msg_handlers');
 
 export type TGetSearchable = (body: any) => TSearchable;
-export type THandler = (fq_msg: FileQueueMessage) => Promise<Upsert[]>;
+export type THandler = (fq_msg: FileQueueMessage) => Promise<Update[]>;
 export type THandlersSet = Map<RegExp, THandler>;
 export type TSearchableHandlersSet = Map<RegExp, TGetSearchable>;
 

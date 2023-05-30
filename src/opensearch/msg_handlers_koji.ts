@@ -30,7 +30,7 @@ import { THandler, THandlersSet } from './msg_handlers';
 import { assert_is_valid } from '../validation';
 import { FileQueueMessage } from '../fqueue';
 import {
-  Upsert,
+  Update,
   Document,
   getIndexName,
   ArtifactTypes,
@@ -58,6 +58,7 @@ const ContextToKojiInstance: { [key in ArtifactContext]?: KojiHubName } = {
  * }
  */
 const mkSearchableRPMFromBuildTagKojiBuild = (
+  artifactContext: ArtifactContext,
   fq_msg: FileQueueMessage,
   buildInfo: any,
 ): SearchableRpm => {
@@ -65,12 +66,22 @@ const mkSearchableRPMFromBuildTagKojiBuild = (
   const buildId = _.get(body, 'build_id');
   const taskId = _.toString(buildInfo.task_id);
   const gateTagName = _.get(body, 'tag');
+  let artifactType: ArtifactTypes;
+  if (artifactContext === 'fedora') {
+    artifactType = 'koji-build';
+  } else if (artifactContext === 'centos') {
+    artifactType = 'koji-build-cs';
+  } else {
+    throw new Error(`Unknonwn context ${artifactContext}`);
+  }
   const searchable: SearchableRpm = {
-    task_id: taskId,
-    build_id: _.toString(buildId),
     nvr: _.get(buildInfo, 'nvr'),
+    type: artifactType,
     issuer: body.owner,
     source: _.get(buildInfo, 'extra.source.original_url'),
+    scratch: false,
+    task_id: taskId,
+    build_id: _.toString(buildId),
     component: _.get(buildInfo, 'name'),
     gate_tag_name: gateTagName,
     broker_msg_id_brew_tag: broker_msg_id,
@@ -82,13 +93,13 @@ const mkSearchableRPMFromBuildTagKojiBuild = (
 const handler_buildsys_tag = async (
   artifactContext: ArtifactContext,
   fq_msg: FileQueueMessage,
-): Promise<Upsert[]> => {
+): Promise<Update[]> => {
   const hubName = ContextToKojiInstance[artifactContext];
   assert.ok(
     hubName,
     `Cannot get hub name for artifact context: ${artifactContext}`,
   );
-  const { body } = fq_msg;
+  const { body, broker_extra } = fq_msg;
   const { build_id } = body;
   let buildInfo;
   try {
@@ -101,35 +112,32 @@ const handler_buildsys_tag = async (
     throw err;
   }
   assert_is_valid(buildInfo, 'koji_build_info');
-  let searchable: SearchableRpm;
-  let artifactType: ArtifactTypes;
-  let artifactId;
-  searchable = mkSearchableRPMFromBuildTagKojiBuild(fq_msg, buildInfo);
-  if (artifactContext === 'fedora') {
-    artifactType = 'koji-build';
-  } else if (artifactContext === 'centos') {
-    artifactType = 'koji-build-cs';
-  }
-  artifactType = 'koji-build';
-  artifactId = _.toString(searchable.task_id);
+  const searchable: SearchableRpm = mkSearchableRPMFromBuildTagKojiBuild(
+    artifactContext,
+    fq_msg,
+    buildInfo,
+  );
+  const artifactType: ArtifactTypes = searchable.type;
+  const artifactId = _.toString(searchable.task_id);
   const docId = `${artifactType}-${artifactId}`;
   const indexName: string = getIndexName(artifactContext, artifactType);
-  const upsertDoc: Document = {
+  const doc: Document = {
     searchable,
-    '@timestamp': 0,
+    '@timestamp': broker_extra.timestamp,
     artifact_message: {
       name: 'artifact',
     },
   };
   const routing = docId;
-  const upsert: Upsert = {
+  const update: Update = {
+    doc,
     docId,
-    indexName,
-    upsertDoc,
     routing,
+    indexName,
+    doc_as_upsert: true,
   };
-  log(' [i] handlerCommon updated doc: %s%o', '\n', upsert);
-  return [upsert];
+  log(' [i] handlerCommon updated doc: %s%o', '\n', update);
+  return [update];
 };
 
 /**
