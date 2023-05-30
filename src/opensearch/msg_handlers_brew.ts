@@ -29,11 +29,11 @@ import { THandler, THandlersSet, NoNeedToProcessError } from './msg_handlers';
 import { schemas } from '../validation';
 import { FileQueueMessage } from '../fqueue';
 import {
-  Upsert,
+  Update,
   Document,
   getIndexName,
   SearchableRpm,
-  SearchableRedHatModule,
+  SearchableMbs,
   SearchableContainerImage,
 } from './opensearch';
 import { ArtifactTypes } from '../db_interface';
@@ -47,15 +47,15 @@ const mkSearchableRPMFromBuildTagBrewBuild = (
   const buildId = _.get(body, 'build.build_id');
   const buildIdStr = _.toString(buildId);
   const searchable: SearchableRpm = {
-    task_id: _.get(body, 'build.task_id'),
-    /* Should be None for module */
     nvr: _.get(body, 'build.nvr'),
+    type: 'brew-build',
     issuer: _.get(body, 'build.owner_name'),
+    source: _.get(body, 'build.source'),
+    task_id: _.get(body, 'build.task_id'),
+    build_id: buildIdStr,
     /* same as body.build.name */
     component: _.get(body, 'build.package_name'),
     gate_tag_name: _.get(body, 'tag.name'),
-    source: _.get(body, 'build.source'),
-    build_id: buildIdStr,
     broker_msg_id_brew_tag: broker_msg_id,
   };
   return searchable;
@@ -66,7 +66,7 @@ const mkSearchableRPMFromBuildTagBrewBuild = (
  */
 const mkSearchableRedhatModuleFromBuildTagRedHatModule = (
   fq_msg: FileQueueMessage,
-): SearchableRedHatModule => {
+): SearchableMbs => {
   const { body, broker_msg_id } = fq_msg;
   const name: string = _.get(body, 'build.extra.typeinfo.module.name');
   const stream: string = _.get(body, 'build.extra.typeinfo.module.stream');
@@ -78,12 +78,13 @@ const mkSearchableRedhatModuleFromBuildTagRedHatModule = (
   );
   const mbsIdStr = _.toString(mbsId);
   const nsvc: string = _.join([name, stream, version, context], ':');
-  const searchable: SearchableRedHatModule = {
+  const searchable: SearchableMbs = {
     name,
-    version,
-    stream,
-    context,
     nsvc,
+    stream,
+    version,
+    context,
+    type: 'redhat-module',
     mbs_id: mbsIdStr,
     nvr: _.get(body, 'build.nvr'),
     issuer: _.get(body, 'build.owner_name'),
@@ -103,6 +104,7 @@ const mkSearchableFromBuildCompleteRedHatContainerImage = (
 ): SearchableContainerImage => {
   const { broker_msg_id, body } = fq_msg;
   const payload: SearchableContainerImage = {
+    type: 'redhat-container-image',
     task_id: _.get(body, 'info.extra.container_koji_task_id'),
     /* Should be None for module */
     nvr: _.get(body, 'info.nvr'),
@@ -141,8 +143,8 @@ const mkSearchableFromBuildCompleteRedHatContainerImage = (
  */
 const handler_brew_tag = async (
   fq_msg: FileQueueMessage,
-): Promise<Upsert[]> => {
-  const { body } = fq_msg;
+): Promise<Update[]> => {
+  const { body, broker_extra } = fq_msg;
   /**
    * A RPM build or MBS build can be tagged to gate-tag
    */
@@ -150,13 +152,13 @@ const handler_brew_tag = async (
     body,
     'build.extra.typeinfo.module.module_build_service_id',
   );
-  let searchable: SearchableRpm | SearchableRedHatModule;
+  let searchable: SearchableRpm | SearchableMbs;
   const gateTagName = _.get(body, 'tag.name');
   let artifactType: ArtifactTypes;
   let artifactId;
   if (isRedHatModule) {
     searchable = mkSearchableRedhatModuleFromBuildTagRedHatModule(fq_msg);
-    artifactType = 'redhat-module';
+    artifactType = searchable.type;
     artifactId = _.toString(searchable.mbs_id);
     const tag_parse_err = _.attempt(
       Joi.assert,
@@ -169,7 +171,7 @@ const handler_brew_tag = async (
     }
   } else {
     searchable = mkSearchableRPMFromBuildTagBrewBuild(fq_msg);
-    artifactType = 'brew-build';
+    artifactType = searchable.type;
     artifactId = _.toString(searchable.task_id);
     const tag_parse_err = _.attempt(
       Joi.assert,
@@ -183,22 +185,23 @@ const handler_brew_tag = async (
   }
   const docId = `${artifactType}-${artifactId}`;
   const indexName: string = getIndexName('redhat', artifactType);
-  const upsertDoc: Document = {
+  const doc: Document = {
     searchable,
-    '@timestamp': 0,
+    '@timestamp': broker_extra.timestamp,
     artifact_message: {
       name: 'artifact',
     },
   };
   const routing = docId;
-  const upsert: Upsert = {
+  const update: Update = {
+    doc,
     docId,
-    indexName,
-    upsertDoc,
     routing,
+    indexName,
+    doc_as_upsert: true,
   };
-  log(' [i] handlerCommon updated doc: %s%o', '\n', upsert);
-  return [upsert];
+  log(' [i] handlerCommon updated doc: %s%o', '\n', update);
+  return [update];
 };
 
 /**
@@ -206,8 +209,8 @@ const handler_brew_tag = async (
  */
 const handler_brew_build_complete = async (
   fq_msg: FileQueueMessage,
-): Promise<Upsert[]> => {
-  const { body } = fq_msg;
+): Promise<Update[]> => {
+  const { body, broker_extra } = fq_msg;
   const isRedHatContainerImage =
     _.get(body, 'info.extra.osbs_build.kind') === 'container_build';
   const buildId = _.get(body, 'info.build_id');
@@ -216,7 +219,7 @@ const handler_brew_build_complete = async (
   let artifactId: string;
   if (isRedHatContainerImage) {
     searchable = mkSearchableFromBuildCompleteRedHatContainerImage(fq_msg);
-    artifactType = 'redhat-container-image';
+    artifactType = searchable.type;
     artifactId = _.toString(searchable.task_id);
   } else {
     const errMsg = `No VirtualTopic.eng.brew.build.complete handeler for build id: ${buildId}`;
@@ -226,22 +229,23 @@ const handler_brew_build_complete = async (
   log(' [i] handler_brew_build_complete updated doc: %s%o', '\n', searchable);
   const docId = `${artifactType}-${artifactId}`;
   const indexName: string = getIndexName('redhat', artifactType);
-  const upsertDoc: Document = {
+  const doc: Document = {
     searchable,
-    '@timestamp': 0,
+    '@timestamp': broker_extra.timestamp,
     artifact_message: {
       name: 'artifact',
     },
   };
   const routing = docId;
-  const upsert: Upsert = {
+  const update: Update = {
+    doc,
     docId,
-    indexName,
-    upsertDoc,
     routing,
+    indexName,
+    doc_as_upsert: true,
   };
-  log(' [i] handlerCommon updated doc: %s%o', '\n', upsert);
-  return [upsert];
+  log(' [i] handlerCommon updated doc: %s%o', '\n', update);
+  return [update];
 };
 
 /**
