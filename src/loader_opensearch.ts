@@ -32,9 +32,9 @@ import { getcfg, mkDirParents } from './cfg';
 import { getAllSchemas } from './get_schema';
 
 import {
-  Upsert,
+  Update,
   printify,
-  getMsgUpserts,
+  getMsgUpdates,
   OpensearchClient,
 } from './opensearch/opensearch';
 
@@ -82,6 +82,9 @@ async function handle_signal(
  * array length, we can determine the number of bytes in the original string.
  */
 function getObjectSize(obj: any): number {
+  if (!obj) {
+    return 0;
+  }
   const objectString = JSON.stringify(obj);
   const utf8Length = encodeURI(objectString).split(/%..|./).length - 1;
   return utf8Length;
@@ -168,7 +171,7 @@ async function start(): Promise<never> {
   cron.schedule(cronExprShemas, getAllSchemas);
 
   let fqEntries: FileQueueEntry[] = [];
-  let bulkUpserts: Upsert[] = [];
+  let bulkUpdates: Update[] = [];
   let bulkSizeBytes = 0;
   let prevMsgTime = new Date();
   const bulkSecondsThreshold = 3;
@@ -215,37 +218,40 @@ async function start(): Promise<never> {
     const secondsBetweenMessages =
       (newMsgTime.getTime() - prevMsgTime.getTime()) / 1000;
     prevMsgTime = newMsgTime;
-    let msgUpserts: Upsert[];
+    let msgUpdates: Update[];
     try {
-      /** Can produce 0 upserts, for example when message is discarded */
-      msgUpserts = await getMsgUpserts(fq_msg);
+      /** Can produce 0 updates, for example when message is discarded */
+      msgUpdates = await getMsgUpdates(fq_msg);
     } catch (err) {
       rollbackAndExit(err, fqEntries, fq_msg);
       /** TS cannot track exit in previous function call */
       process.exit(1);
     }
     log(
-      ' [I] msg with id %s produced %s upserts',
+      ' [I] msg with id %s produced %s updates',
       fq_msg.broker_msg_id,
-      msgUpserts.length,
+      msgUpdates.length,
     );
-    const upsertsSizeBytes = _.sum(
-      _.map(msgUpserts, (upsert) => getObjectSize(upsert.upsertDoc)),
+    const updatesSizeBytes = _.sum(
+      _.map(msgUpdates, (update) => {
+        /** Note: next calculation is not strict, since there is a dependecy on doc_as_upsert parameter. Approximate calculations is also OK. */
+        return _.max([getObjectSize(update.doc), getObjectSize(update.upsert)]);
+      }),
     );
-    bulkSizeBytes += upsertsSizeBytes;
-    bulkUpserts = [...bulkUpserts, ...msgUpserts];
+    bulkSizeBytes += updatesSizeBytes;
+    bulkUpdates = [...bulkUpdates, ...msgUpdates];
     if (
       (secondsBetweenMessages < bulkSecondsThreshold &&
-        bulkUpserts.length < bulkMaxEntries &&
+        bulkUpdates.length < bulkMaxEntries &&
         bulkSizeBytes < bulkMaxSize) ||
-      bulkUpserts.length === 0
+      bulkUpdates.length === 0
     ) {
       continue;
     }
     log(' [I] bulkSizeBytes: %s', bulkSizeBytes);
     try {
-      await opensearchClient.bulkUpdate(bulkUpserts);
-      bulkUpserts = [];
+      await opensearchClient.bulkUpdate(bulkUpdates);
+      bulkUpdates = [];
       bulkSizeBytes = 0;
       commitFqMessages(fqEntries);
       fqEntries = [];

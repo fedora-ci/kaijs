@@ -45,18 +45,21 @@
  *
  */
 
-import _ from 'lodash';
+import _, { update } from 'lodash';
 import debug from 'debug';
 import {
-  Upsert,
+  Update,
   Document,
   getIndexName,
-  SearchableTest,
+  SearchableMbs,
+  SearchableRpm,
   ArtifactContext,
+  SearchableTestRpm,
   SearchableCompose,
-  SearchableRedHatModule,
-  SearchableFedoraModule,
+  SearchableTestCompose,
   SearchableContainerImage,
+  SearchableTestContainerImage,
+  SearchableTestMbs,
 } from './opensearch';
 import {
   THandler,
@@ -77,19 +80,18 @@ const log = debug('kaijs:msg_handlers_test');
 /**
  * V1 - Schema for messages with version >= 1.0.0
  */
-const mkSearchableRpmTestV1 = (fq_msg: FileQueueMessage): SearchableTest => {
+const mkSearchableRpmTestV1 = (fq_msg: FileQueueMessage): SearchableTestRpm => {
   const { broker_topic, body, broker_extra, broker_msg_id } = fq_msg;
   const { artifact } = body;
   var thread_id = mkThreadId(fq_msg);
   var test_state = _.last(_.split(broker_topic, '.')) as string;
   var test_stage = _.nth(_.split(broker_topic, '.'), -2) as string;
-  var timestamp = Date.parse(_.get(body, 'generated_at'));
   let test_case_name;
   if (isTestStage(broker_topic)) {
     test_case_name = makeTestCaseName(body);
   }
-  const searchable: SearchableTest = {
-    task_id: _.get(artifact, 'id'),
+  const searchable: SearchableTestRpm = {
+    task_id: _.toString(_.get(artifact, 'id')),
     type: _.get(artifact, 'type'),
     nvr: _.get(artifact, 'nvr'),
     source: _.get(artifact, 'source'),
@@ -101,7 +103,6 @@ const mkSearchableRpmTestV1 = (fq_msg: FileQueueMessage): SearchableTest => {
     test_state,
     /** stage: build, test */
     test_stage,
-    msg_timestamp: timestamp || broker_extra.timestamp,
     test_case_name,
     broker_msg_id,
     broker_topic,
@@ -110,27 +111,45 @@ const mkSearchableRpmTestV1 = (fq_msg: FileQueueMessage): SearchableTest => {
 };
 
 /**
+ * V1 - Schema for messages with version >= 1.0.0
+ */
+const mkSearchableRpmTestParentV1 = (
+  fq_msg: FileQueueMessage,
+): SearchableRpm => {
+  const { body } = fq_msg;
+  const { artifact } = body;
+  const searchable: SearchableRpm = {
+    task_id: _.toString(_.get(artifact, 'id')),
+    nvr: _.get(artifact, 'nvr'),
+    type: _.get(artifact, 'type'),
+    source: _.get(artifact, 'source'),
+    issuer: _.get(artifact, 'issuer'),
+    scratch: _.get(artifact, 'scratch'),
+    component: _.get(artifact, 'component'),
+  };
+  return searchable;
+};
+
+/**
  * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/module-build.yaml
  */
-const mkSearchableMbsTestV1 = (
-  fq_msg: FileQueueMessage,
-): SearchableRedHatModule | SearchableFedoraModule => {
+const mkSearchableMbsTestV1 = (fq_msg: FileQueueMessage): SearchableTestMbs => {
   const { broker_topic, body, broker_extra, broker_msg_id } = fq_msg;
   const { artifact } = body;
   var thread_id = mkThreadId(fq_msg);
   var test_state = _.last(_.split(broker_topic, '.')) as string;
   var test_stage = _.nth(_.split(broker_topic, '.'), -2) as string;
-  var timestamp = Date.parse(_.get(body, 'generated_at'));
   let test_case_name;
   if (isTestStage(broker_topic)) {
     test_case_name = makeTestCaseName(body);
   }
-  const searchable = {
-    mbs_id: _.get(artifact, 'id'),
+  const searchable: SearchableTestMbs = {
     nvr: _.get(artifact, 'nvr'),
-    issuer: _.get(artifact, 'issuer'),
+    type: _.get(artifact, 'type'),
     nsvc: _.get(artifact, 'nsvc'),
     name: _.get(artifact, 'name'),
+    mbs_id: _.get(artifact, 'id'),
+    issuer: _.get(artifact, 'issuer'),
     stream: _.get(artifact, 'stream'),
     version: _.get(artifact, 'version'),
     context: _.get(artifact, 'context'),
@@ -139,10 +158,28 @@ const mkSearchableMbsTestV1 = (
     test_state,
     /** stage: build, test */
     test_stage,
-    msg_timestamp: timestamp || broker_extra.timestamp,
-    test_case_name,
-    broker_msg_id,
     broker_topic,
+    broker_msg_id,
+    test_case_name,
+  };
+  return searchable;
+};
+
+const mkSearchableMbsTestParentV1 = (
+  fq_msg: FileQueueMessage,
+): SearchableMbs => {
+  const { body } = fq_msg;
+  const { artifact } = body;
+  const searchable: SearchableMbs = {
+    nvr: _.get(artifact, 'nvr'),
+    nsvc: _.get(artifact, 'nsvc'),
+    name: _.get(artifact, 'name'),
+    type: _.get(artifact, 'type'),
+    mbs_id: _.get(artifact, 'id'),
+    issuer: _.get(artifact, 'issuer'),
+    stream: _.get(artifact, 'stream'),
+    version: _.get(artifact, 'version'),
+    context: _.get(artifact, 'context'),
   };
   return searchable;
 };
@@ -150,12 +187,110 @@ const mkSearchableMbsTestV1 = (
 /**
  * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/productmd-compose.yaml
  */
-const mkSearchableComposeTestV1 = (body: any): SearchableCompose => {
+const mkSearchableComposeTestV1 = (
+  fq_msg: FileQueueMessage,
+): SearchableTestCompose => {
+  const { broker_topic, body, broker_extra, broker_msg_id } = fq_msg;
   const { artifact } = body;
-  const searchable = {
+  var thread_id = mkThreadId(fq_msg);
+  var test_state = _.last(_.split(broker_topic, '.')) as string;
+  var test_stage = _.nth(_.split(broker_topic, '.'), -2) as string;
+  let test_case_name;
+  if (isTestStage(broker_topic)) {
+    test_case_name = makeTestCaseName(body);
+  }
+  const searchable: SearchableTestCompose = {
+    type: _.get(artifact, 'type'),
     compose_id: _.get(artifact, 'id'),
     compose_type: _.get(artifact, 'compose_type'),
     release_type: _.get(artifact, 'release_type'),
+    thread_id,
+    /** state: complete, running */
+    test_state,
+    /** stage: build, test */
+    test_stage,
+    broker_topic,
+    broker_msg_id,
+    test_case_name,
+  };
+  return searchable;
+};
+
+const mkSearchableComposeTestParentV1 = (
+  fq_msg: FileQueueMessage,
+): SearchableCompose => {
+  const { body } = fq_msg;
+  const { artifact } = body;
+  const searchable: SearchableCompose = {
+    type: _.get(artifact, 'type'),
+    compose_id: _.get(artifact, 'id'),
+    compose_type: _.get(artifact, 'compose_type'),
+    release_type: _.get(artifact, 'release_type'),
+  };
+  return searchable;
+};
+
+const mkSearchableContainerImageTestV1 = (
+  fq_msg: FileQueueMessage,
+): SearchableTestContainerImage => {
+  const { broker_topic, body, broker_extra, broker_msg_id } = fq_msg;
+  const { artifact } = body;
+  var thread_id = mkThreadId(fq_msg);
+  var test_state = _.last(_.split(broker_topic, '.')) as string;
+  var test_stage = _.nth(_.split(broker_topic, '.'), -2) as string;
+  let test_case_name;
+  if (isTestStage(broker_topic)) {
+    test_case_name = makeTestCaseName(body);
+  }
+  const searchable: SearchableTestContainerImage = {
+    id: _.get(artifact, 'id'),
+    nvr: _.get(artifact, 'nvr'),
+    tag: _.get(artifact, 'tag'),
+    type: _.get(artifact, 'type'),
+    /* A digest that uniquely identifies the image within a repository. */
+    name: _.get(artifact, 'name'),
+    source: _.get(artifact, 'source'),
+    issuer: _.get(artifact, 'issuer'),
+    task_id: _.get(artifact, 'task_id'),
+    build_id: _.get(artifact, 'build_id'),
+    scratch: _.get(artifact, 'scratch'),
+    component: _.get(artifact, 'component'),
+    namespace: _.get(artifact, 'namespace'),
+    full_names: _.get(artifact, 'full_names'),
+    registry_url: _.get(artifact, 'registry_url'),
+    thread_id,
+    /** state: complete, running */
+    test_state,
+    /** stage: build, test */
+    test_stage,
+    test_case_name,
+    broker_msg_id,
+    broker_topic,
+  };
+  return searchable;
+};
+
+const mkSearchableContainerImageTestParentV1 = (
+  fq_msg: FileQueueMessage,
+): SearchableContainerImage => {
+  const { body } = fq_msg;
+  const { artifact } = body;
+  const searchable: SearchableContainerImage = {
+    id: _.get(artifact, 'id'),
+    nvr: _.get(artifact, 'nvr'),
+    tag: _.get(artifact, 'tag'),
+    type: _.get(artifact, 'type'),
+    /* A digest that uniquely identifies the image within a repository. */
+    name: _.get(artifact, 'name'),
+    source: _.get(artifact, 'source'),
+    issuer: _.get(artifact, 'issuer'),
+    task_id: _.get(artifact, 'task_id'),
+    build_id: _.get(artifact, 'build_id'),
+    scratch: _.get(artifact, 'scratch'),
+    component: _.get(artifact, 'component'),
+    namespace: _.get(artifact, 'namespace'),
+    full_names: _.get(artifact, 'full_names'),
+    registry_url: _.get(artifact, 'registry_url'),
   };
   return searchable;
 };
@@ -168,214 +303,295 @@ const mkParentDocId = (fq_msg: FileQueueMessage): string => {
   return `${type}-${id}`;
 };
 
-const mkSearchableContainerImageTestV1 = (
-  fq_msg: FileQueueMessage,
-): SearchableContainerImage => {
-  const { broker_topic, body, broker_extra, broker_msg_id } = fq_msg;
-  const { artifact } = body;
-  var thread_id = mkThreadId(fq_msg);
-  var test_state = _.last(_.split(broker_topic, '.')) as string;
-  var test_stage = _.nth(_.split(broker_topic, '.'), -2) as string;
-  var timestamp = Date.parse(_.get(body, 'generated_at'));
-  let test_case_name;
-  if (isTestStage(broker_topic)) {
-    test_case_name = makeTestCaseName(body);
-  }
-  const searchable = {
-    task_id: _.get(artifact, 'task_id'),
-    nvr: _.get(artifact, 'nvr'),
-    source: _.get(artifact, 'source'),
-    issuer: _.get(artifact, 'issuer'),
-    scratch: _.get(artifact, 'scratch'),
-    component: _.get(artifact, 'component'),
-    build_id: _.get(artifact, 'build_id'),
-    /* A digest that uniquely identifies the image within a repository. */
-    id: _.get(artifact, 'id'),
-    name: _.get(artifact, 'name'),
-    namespace: _.get(artifact, 'namespace'),
-    full_names: _.get(artifact, 'full_names'),
-    registry_url: _.get(artifact, 'registry_url'),
-    tag: _.get(artifact, 'tag'),
-    thread_id,
-    /** state: complete, running */
-    test_state,
-    /** stage: build, test */
-    test_stage,
-    msg_timestamp: timestamp || broker_extra.timestamp,
-    test_case_name,
-    broker_msg_id,
-    broker_topic,
-  };
-  return searchable;
-};
-
 /**
- * Declare set() from most specialized to most global regexes
+ * Declare:
+ * * set() from most specialized to most global regexes
+ * * payload handlers are based on message version
  */
-
-const searchableComposeTestHandlers: TSearchableHandlersSet = new Map<
-  RegExp,
-  TGetSearchable
->();
-
+/**
+ * RPM builds
+ */
 const searchableRpmTestHandlers: TSearchableHandlersSet = new Map<
   RegExp,
   TGetSearchable
 >();
-
-const searchableContainerImageTestHandlers: TSearchableHandlersSet = new Map<
+const searchableRpmTestParentHandlers: TSearchableHandlersSet = new Map<
   RegExp,
   TGetSearchable
 >();
-
+searchableRpmTestHandlers.set(/^.*$/, mkSearchableRpmTestV1);
+searchableRpmTestParentHandlers.set(/^.*$/, mkSearchableRpmTestParentV1);
+/**
+ * MBS builds
+ */
 const searchableMbsTestHandlers: TSearchableHandlersSet = new Map<
   RegExp,
   TGetSearchable
 >();
-
+const searchableMbsTestParentHandlers: TSearchableHandlersSet = new Map<
+  RegExp,
+  TGetSearchable
+>();
+searchableMbsTestHandlers.set(/^.*$/, mkSearchableMbsTestV1);
+searchableMbsTestParentHandlers.set(/^.*$/, mkSearchableMbsTestParentV1);
 /**
- * Payload handlers are based on message version
+ * Composes
  */
-searchableRpmTestHandlers.set(/^.*$/, mkSearchableRpmTestV1);
+const searchableComposeTestHandlers: TSearchableHandlersSet = new Map<
+  RegExp,
+  TGetSearchable
+>();
+const searchableComposeTestParentHandlers: TSearchableHandlersSet = new Map<
+  RegExp,
+  TGetSearchable
+>();
 searchableComposeTestHandlers.set(/^.*$/, mkSearchableComposeTestV1);
+searchableComposeTestParentHandlers.set(
+  /^.*$/,
+  mkSearchableComposeTestParentV1,
+);
+/**
+ * Container images
+ */
+const searchableContainerImageTestHandlers: TSearchableHandlersSet = new Map<
+  RegExp,
+  TGetSearchable
+>();
+const searchableContainerImageTestParentHandlers: TSearchableHandlersSet =
+  new Map<RegExp, TGetSearchable>();
 searchableContainerImageTestHandlers.set(
   /^.*$/,
   mkSearchableContainerImageTestV1,
 );
-searchableMbsTestHandlers.set(/^.*$/, mkSearchableMbsTestV1);
+searchableContainerImageTestParentHandlers.set(
+  /^.*$/,
+  mkSearchableContainerImageTestParentV1,
+);
 
 const handlerRpmTest = async (
   artifactContext: ArtifactContext,
   fq_msg: FileQueueMessage,
-): Promise<Upsert[]> => {
-  const { broker_msg_id, body } = fq_msg;
+): Promise<Update[]> => {
+  const { broker_msg_id, body, broker_extra } = fq_msg;
   const { artifact } = body;
   assert_is_valid(artifact, 'valid_artifact_issuer');
   /** used to make parent document ID */
   const docId = broker_msg_id;
   const artifactType = artifact.type;
-  const searchable = mkSearchable(fq_msg, searchableRpmTestHandlers);
+  const searchable = mkSearchable(
+    fq_msg,
+    searchableRpmTestHandlers,
+  ) as SearchableTestRpm;
+  const searchableParent = mkSearchable(
+    fq_msg,
+    searchableRpmTestParentHandlers,
+  ) as SearchableRpm;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifactType);
   const messageData = makeMessageData(fq_msg);
-  const upsertDoc: Document = {
+  const doc: Document = {
     searchable,
-    '@timestamp': 0,
+    '@timestamp': broker_extra.timestamp,
     message: messageData,
     artifact_message: {
       name: 'message',
       parent: parentDocId,
     },
   };
-  const routing = parentDocId;
-  const upsert: Upsert = {
-    docId,
-    indexName,
-    upsertDoc,
-    routing,
+  const parentDoc: Document = {
+    searchable: searchableParent,
+    '@timestamp': broker_extra.timestamp,
+    artifact_message: {
+      name: 'artifact',
+    },
   };
-  log(' [i] handlerRpmTest updated doc: %s%o', '\n', upsert);
-  return [upsert];
+  const routing = parentDocId;
+  const updateForBrokerMsg: Update = {
+    doc,
+    docId,
+    routing,
+    indexName,
+    doc_as_upsert: true,
+  };
+  log(' [i] handlerRpmTest updated doc: %s%o', '\n', updateForBrokerMsg);
+  const updateForParent: Update = {
+    docId: parentDocId,
+    /* upsert() - jumps into action, only, and only if, there is no document */
+    upsert: parentDoc,
+    routing,
+    indexName,
+    doc_as_upsert: false,
+  };
+  return [updateForBrokerMsg, updateForParent];
 };
 
 const handlerMbsTest = async (
   artifactContext: ArtifactContext,
   fq_msg: FileQueueMessage,
-): Promise<Upsert[]> => {
-  const { broker_msg_id, body } = fq_msg;
+): Promise<Update[]> => {
+  const { broker_msg_id, body, broker_extra } = fq_msg;
   const { artifact } = body;
   /** used to make parent document ID */
   const docId = broker_msg_id;
   const artifact_type = artifact.type;
-  const searchable = mkSearchable(fq_msg, searchableMbsTestHandlers);
+  const searchable = mkSearchable(
+    fq_msg,
+    searchableMbsTestHandlers,
+  ) as SearchableTestMbs;
+  const searchableParent = mkSearchable(
+    fq_msg,
+    searchableMbsTestParentHandlers,
+  ) as SearchableMbs;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifact_type);
   const messageData = makeMessageData(fq_msg);
-  const upsertDoc: Document = {
+  const doc: Document = {
     searchable,
-    '@timestamp': 0,
+    '@timestamp': broker_extra.timestamp,
     message: messageData,
     artifact_message: {
       name: 'message',
       parent: parentDocId,
     },
   };
-  const routing = parentDocId;
-  const upsert: Upsert = {
-    docId,
-    indexName,
-    upsertDoc,
-    routing,
+  const parentDoc: Document = {
+    searchable: searchableParent,
+    '@timestamp': broker_extra.timestamp,
+    artifact_message: {
+      name: 'artifact',
+    },
   };
-  log(' [i] handlerMbsTest updated doc: %s%o', '\n', upsert);
-  return [upsert];
+  const routing = parentDocId;
+  const updateForBrokerMsg: Update = {
+    doc,
+    docId,
+    routing,
+    indexName,
+    doc_as_upsert: true,
+  };
+  log(' [i] handlerMbsTest updated doc: %s%o', '\n', update);
+  const updateForParent: Update = {
+    docId: parentDocId,
+    /* upsert() - jumps into action, only, and only if, there is no document */
+    upsert: parentDoc,
+    routing,
+    indexName,
+    doc_as_upsert: false,
+  };
+  return [updateForBrokerMsg, updateForParent];
 };
 
 const handlerComposeTest = async (
   artifactContext: ArtifactContext,
   fq_msg: FileQueueMessage,
-): Promise<Upsert[]> => {
-  const { broker_msg_id, body } = fq_msg;
+): Promise<Update[]> => {
+  const { broker_msg_id, body, broker_extra } = fq_msg;
   const { artifact } = body;
   const artifact_type = artifact.type;
-  const searchable = mkSearchable(fq_msg, searchableComposeTestHandlers);
+  const searchable = mkSearchable(
+    fq_msg,
+    searchableComposeTestHandlers,
+  ) as SearchableTestCompose;
+  const searchableParent = mkSearchable(
+    fq_msg,
+    searchableComposeTestParentHandlers,
+  ) as SearchableMbs;
   /** used to make parent document ID */
   const docId = broker_msg_id;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifact_type);
   const messageData = makeMessageData(fq_msg);
-  const upsertDoc: Document = {
+  const doc: Document = {
     searchable,
-    '@timestamp': 0,
+    '@timestamp': broker_extra.timestamp,
     message: messageData,
     artifact_message: {
       name: 'message',
       parent: parentDocId,
     },
   };
-  const routing = parentDocId;
-  const upsert: Upsert = {
-    docId,
-    indexName,
-    upsertDoc,
-    routing,
+  const parentDoc: Document = {
+    searchable: searchableParent,
+    '@timestamp': broker_extra.timestamp,
+    artifact_message: {
+      name: 'artifact',
+    },
   };
-  log(' [i] handlerComposeTest updated doc: %s%o', '\n', upsert);
-  return [upsert];
+  const routing = parentDocId;
+  const updateForBrokerMsg: Update = {
+    doc,
+    docId,
+    routing,
+    indexName,
+    doc_as_upsert: true,
+  };
+  log(' [i] handlerComposeTest updated doc: %s%o', '\n', update);
+  const updateForParent: Update = {
+    docId: parentDocId,
+    /* upsert() - jumps into action, only, and only if, there is no document */
+    upsert: parentDoc,
+    routing,
+    indexName,
+    doc_as_upsert: false,
+  };
+  return [updateForBrokerMsg, updateForParent];
 };
 
 const handlerContainerImageTest = async (
   artifactContext: ArtifactContext,
   fq_msg: FileQueueMessage,
-): Promise<Upsert[]> => {
-  const { broker_msg_id, body } = fq_msg;
+): Promise<Update[]> => {
+  const { broker_msg_id, body, broker_extra } = fq_msg;
   const { artifact } = body;
   assert_is_valid(artifact, 'valid_artifact_issuer');
   /** used to make parent document ID */
   const docId = broker_msg_id;
   const artifact_type = artifact.type;
-  const searchable = mkSearchable(fq_msg, searchableContainerImageTestHandlers);
+  const searchable = mkSearchable(
+    fq_msg,
+    searchableContainerImageTestHandlers,
+  ) as SearchableTestContainerImage;
+  const searchableParent = mkSearchable(
+    fq_msg,
+    searchableComposeTestParentHandlers,
+  ) as SearchableContainerImage;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifact_type);
   const messageData = makeMessageData(fq_msg);
-  const upsertDoc: Document = {
+  const doc: Document = {
     searchable,
-    '@timestamp': 0,
+    '@timestamp': broker_extra.timestamp,
     message: messageData,
     artifact_message: {
       name: 'message',
       parent: parentDocId,
     },
   };
-  const routing = parentDocId;
-  const upsert: Upsert = {
-    docId,
-    indexName,
-    upsertDoc,
-    routing,
+  const parentDoc: Document = {
+    searchable: searchableParent,
+    '@timestamp': broker_extra.timestamp,
+    artifact_message: {
+      name: 'artifact',
+    },
   };
-  log(' [i] handlerContainerImageTest updated doc: %s%o', '\n', upsert);
-  return [upsert];
+  const routing = parentDocId;
+  const updateForBrokerMsg: Update = {
+    doc,
+    docId,
+    routing,
+    indexName,
+    doc_as_upsert: true,
+  };
+  log(' [i] handlerContainerImageTest updated doc: %s%o', '\n', update);
+  const updateForParent: Update = {
+    docId: parentDocId,
+    /* upsert() - jumps into action, only, and only if, there is no document */
+    upsert: parentDoc,
+    routing,
+    indexName,
+    doc_as_upsert: false,
+  };
+  return [updateForBrokerMsg, updateForParent];
 };
 
 const handlerRpmTestRedhat: THandler = _.partial(handlerRpmTest, 'redhat');
