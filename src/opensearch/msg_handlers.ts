@@ -69,7 +69,7 @@ export class NoThreadIdError extends Error {
 
 /** messages can be for different stages: test / build */
 export const mkThreadId = (fq_msg: FileQueueMessage) => {
-  const { broker_msg_id, body } = fq_msg;
+  const { broker_msg_id, body, broker_topic } = fq_msg;
   const threadIdV1 = _.get(body, 'pipeline.id');
   const threadIdV01 = _.get(body, 'thread_id');
   let threadId = _.find(
@@ -93,7 +93,7 @@ export const mkThreadId = (fq_msg: FileQueueMessage) => {
   if (!_.isEmpty(runUrl) && _.isString(runUrl)) {
     hashAnchorParts.push(runUrl);
   }
-  if (isTestStage(body)) {
+  if (isTestStage(broker_topic)) {
     var testCaseName = makeTestCaseName(body);
     hashAnchorParts.push(testCaseName);
   }
@@ -225,3 +225,46 @@ export function getHandler(broker_topic: string): THandler {
       | undefined,
   );
 }
+
+const escapeString = (str: string): string => {
+  return str.replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
+};
+
+/**
+ * Reimplement JSON.stringify(), without: {}[]":
+ */
+export const messageToString = (obj: any): string | undefined => {
+  const maxLength = 400;
+
+  if (_.isNull(obj)) {
+    return 'null';
+  }
+
+  if (_.isUndefined(obj)) {
+    return undefined;
+  }
+
+  if (_.isString(obj)) {
+    const truncatedString = _.truncate(obj, {
+      length: maxLength,
+    });
+    return escapeString(truncatedString);
+  }
+
+  if (_.isNumber(obj) || _.isBoolean(obj)) {
+    return obj.toString();
+  }
+
+  if (_.isArray(obj)) {
+    const arrayValues = _.map(obj, (item) => messageToString(item));
+    return arrayValues.join(' ');
+  }
+
+  if (_.isObject(obj)) {
+    const objectProperties = _.map(
+      obj,
+      (value, key) => `${escapeString(key)} ${messageToString(value)}`,
+    );
+    return objectProperties.join(' ');
+  }
+};

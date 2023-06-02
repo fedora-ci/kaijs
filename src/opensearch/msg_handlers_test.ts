@@ -71,6 +71,7 @@ import {
   makeMessageData,
   makeTestCaseName,
   TSearchableHandlersSet,
+  messageToString,
 } from './msg_handlers';
 import { FileQueueMessage } from '../fqueue';
 import { assert_is_valid } from '../validation';
@@ -81,7 +82,7 @@ const log = debug('kaijs:msg_handlers_test');
  * V1 - Schema for messages with version >= 1.0.0
  */
 const mkSearchableRpmTestV1 = (fq_msg: FileQueueMessage): SearchableTestRpm => {
-  const { broker_topic, body, broker_extra, broker_msg_id } = fq_msg;
+  const { broker_topic, body, broker_msg_id } = fq_msg;
   const { artifact } = body;
   var thread_id = mkThreadId(fq_msg);
   var test_state = _.last(_.split(broker_topic, '.')) as string;
@@ -386,11 +387,13 @@ const handlerRpmTest = async (
     fq_msg,
     searchableRpmTestParentHandlers,
   ) as SearchableRpm;
+  const searchable_text = messageToString(body) as string;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifactType);
   const messageData = makeMessageData(fq_msg);
   const doc: Document = {
     searchable,
+    searchable_text,
     '@timestamp': broker_extra.timestamp,
     message: messageData,
     artifact_message: {
@@ -415,6 +418,7 @@ const handlerRpmTest = async (
   };
   log(' [i] handlerRpmTest updated doc: %s%o', '\n', updateForBrokerMsg);
   const updateForParent: Update = {
+    doc: {},
     docId: parentDocId,
     /* upsert() - jumps into action, only, and only if, there is no document */
     upsert: parentDoc,
@@ -442,11 +446,13 @@ const handlerMbsTest = async (
     fq_msg,
     searchableMbsTestParentHandlers,
   ) as SearchableMbs;
+  const searchable_text = messageToString(body) as string;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifact_type);
   const messageData = makeMessageData(fq_msg);
   const doc: Document = {
     searchable,
+    searchable_text,
     '@timestamp': broker_extra.timestamp,
     message: messageData,
     artifact_message: {
@@ -471,6 +477,7 @@ const handlerMbsTest = async (
   };
   log(' [i] handlerMbsTest updated doc: %s%o', '\n', update);
   const updateForParent: Update = {
+    doc: {},
     docId: parentDocId,
     /* upsert() - jumps into action, only, and only if, there is no document */
     upsert: parentDoc,
@@ -496,6 +503,7 @@ const handlerComposeTest = async (
     fq_msg,
     searchableComposeTestParentHandlers,
   ) as SearchableMbs;
+  const searchable_text = messageToString(body) as string;
   /** used to make parent document ID */
   const docId = broker_msg_id;
   const parentDocId = mkParentDocId(fq_msg);
@@ -503,6 +511,7 @@ const handlerComposeTest = async (
   const messageData = makeMessageData(fq_msg);
   const doc: Document = {
     searchable,
+    searchable_text,
     '@timestamp': broker_extra.timestamp,
     message: messageData,
     artifact_message: {
@@ -527,6 +536,7 @@ const handlerComposeTest = async (
   };
   log(' [i] handlerComposeTest updated doc: %s%o', '\n', update);
   const updateForParent: Update = {
+    doc: {},
     docId: parentDocId,
     /* upsert() - jumps into action, only, and only if, there is no document */
     upsert: parentDoc,
@@ -555,11 +565,13 @@ const handlerContainerImageTest = async (
     fq_msg,
     searchableComposeTestParentHandlers,
   ) as SearchableContainerImage;
+  const searchable_text = messageToString(body) as string;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifact_type);
   const messageData = makeMessageData(fq_msg);
   const doc: Document = {
     searchable,
+    searchable_text,
     '@timestamp': broker_extra.timestamp,
     message: messageData,
     artifact_message: {
@@ -584,6 +596,7 @@ const handlerContainerImageTest = async (
   };
   log(' [i] handlerContainerImageTest updated doc: %s%o', '\n', update);
   const updateForParent: Update = {
+    doc: {},
     docId: parentDocId,
     /* upsert() - jumps into action, only, and only if, there is no document */
     upsert: parentDoc,

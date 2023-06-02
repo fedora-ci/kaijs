@@ -91,7 +91,7 @@ export const getIndexName = (
 };
 
 export interface Update {
-  doc?: Document | ValidationErrorsDocument;
+  doc?: Document | ValidationErrorsDocument | {};
   docId: string;
   upsert?: Document;
   routing?: string;
@@ -104,6 +104,12 @@ export interface Document {
   message?: MessageData;
   /** Contains searchable entries */
   searchable?: TSearchable;
+  /*
+   * Reason to have searchable_text out of searchable:
+   * that we can make a query on searchable.*
+   * This will find strict matches.
+   */
+  searchable_text?: string;
   '@timestamp': number;
   /** Used for parent-child mapping */
   artifact_message: unknown;
@@ -535,8 +541,6 @@ export class OpensearchClient {
           doc: update.doc,
           upsert: update.upsert,
           doc_as_upsert: update.doc_as_upsert,
-          /** Specify how many times should the operation be retried when a conflict occurs. Default: 0. */
-          retry_on_conflict: 10,
         },
       ]);
       const { body: response } = await this.client.bulk({ body });
