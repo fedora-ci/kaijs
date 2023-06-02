@@ -99,7 +99,7 @@ export function customMerge(presentVaule: any, newValue: any) {
 
 /** messages can be for different stages: test / build */
 const mkThreadId = (fq_msg: FileQueueMessage) => {
-  const { broker_msg_id, body } = fq_msg;
+  const { broker_msg_id, body, broker_topic } = fq_msg;
   const thread_id_v_1 = _.get(body, 'pipeline.id');
   const thread_id_v_0_1 = _.get(body, 'thread_id');
   const thread_id = _.find(
@@ -123,7 +123,7 @@ const mkThreadId = (fq_msg: FileQueueMessage) => {
   if (!_.isEmpty(run_url) && _.isString(run_url)) {
     hashAnchorParts.push(run_url);
   }
-  if (isTestStage(body)) {
+  if (isTestStage(broker_topic)) {
     var test_case_name = makeTestCaseName(body);
     hashAnchorParts.push(test_case_name);
   }
