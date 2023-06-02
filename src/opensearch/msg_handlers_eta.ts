@@ -27,7 +27,11 @@
 
 import _ from 'lodash';
 import debug from 'debug';
-import { TGetSearchable, TSearchableHandlersSet } from './msg_handlers';
+import {
+  TGetSearchable,
+  messageToString,
+  TSearchableHandlersSet,
+} from './msg_handlers';
 import { FileQueueMessage } from '../fqueue';
 import {
   Update,
@@ -100,7 +104,7 @@ const handlerCommon = async (
   artifactContext: ArtifactContext,
   fq_msg: FileQueueMessage,
 ): Promise<Update[]> => {
-  const { broker_msg_id, broker_extra } = fq_msg;
+  const { broker_msg_id, broker_extra, body } = fq_msg;
   const type = 'brew-build';
   /** ETA messages can have task_id == null, these messages will be dropped by validation */
   const docId = broker_msg_id;
@@ -113,11 +117,13 @@ const handlerCommon = async (
     fq_msg,
     searchableEtaParentHandlers,
   ) as SearchableRpm;
+  const searchable_text = messageToString(body) as string;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifactType);
   const messageData = makeMessageData(fq_msg);
   const doc: Document = {
     searchable,
+    searchable_text,
     '@timestamp': broker_extra.timestamp,
     message: messageData,
     artifact_message: {
@@ -141,6 +147,7 @@ const handlerCommon = async (
     doc_as_upsert: true,
   };
   const updateForParent: Update = {
+    doc: {},
     docId: parentDocId,
     /* upsert() - jumps into action, only, and only if, there is no document */
     upsert: parentDoc,
