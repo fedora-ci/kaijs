@@ -41,7 +41,7 @@
     "xmlrpc": "^1.3.2"
   },
   "devDependencies": {
-    "@types/cron": "^2.0.1",
+    "@types/cron": "^2.4.0",
     "@types/js-yaml": "^4.0.2",
     "@types/mongodb": "^4.0.7",
     "@types/node": "^20.4.4",
