@@ -169,10 +169,10 @@ export const makeTestCaseName = (body: any): string => {
 export const makeMessageData = (fq_msg: FileQueueMessage): MessageData => {
   const { broker_topic, broker_msg_id, body, broker_extra } = fq_msg;
   const messageData = {
-    broker_extra,
-    broker_msg_id,
-    broker_msg_body: body,
-    broker_msg_topic: broker_topic,
+    brokerExtra: broker_extra,
+    brokerMsgId: broker_msg_id,
+    brokerMsgBody: body,
+    brokerMsgTopic: broker_topic,
   };
   return messageData;
 };
