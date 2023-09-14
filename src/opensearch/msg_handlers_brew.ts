@@ -48,15 +48,15 @@ const mkSearchableRPMFromBuildTagBrewBuild = (
   const buildIdStr = _.toString(buildId);
   const searchable: SearchableRpm = {
     nvr: _.get(body, 'build.nvr'),
-    type: 'brew-build',
+    aType: 'brew-build',
     issuer: _.get(body, 'build.owner_name'),
     source: _.get(body, 'build.source'),
-    task_id: _.get(body, 'build.task_id'),
-    build_id: buildIdStr,
+    taskId: _.get(body, 'build.task_id'),
+    buildId: buildIdStr,
+    gateTag: _.get(body, 'tag.name'),
     /* same as body.build.name */
     component: _.get(body, 'build.package_name'),
-    gate_tag_name: _.get(body, 'tag.name'),
-    broker_msg_id_brew_tag: broker_msg_id,
+    brokerMsgIdGateTag: broker_msg_id,
   };
   return searchable;
 };
@@ -68,30 +68,33 @@ const mkSearchableRedhatModuleFromBuildTagRedHatModule = (
   fq_msg: FileQueueMessage,
 ): SearchableMbs => {
   const { body, broker_msg_id } = fq_msg;
-  const name: string = _.get(body, 'build.extra.typeinfo.module.name');
-  const stream: string = _.get(body, 'build.extra.typeinfo.module.stream');
-  const version: string = _.get(body, 'build.extra.typeinfo.module.version');
-  const context: string = _.get(body, 'build.extra.typeinfo.module.context');
+  const modName: string = _.get(body, 'build.extra.typeinfo.module.name');
+  const modStream: string = _.get(body, 'build.extra.typeinfo.module.stream');
+  const modVersion: string = _.get(body, 'build.extra.typeinfo.module.version');
+  const modContext: string = _.get(body, 'build.extra.typeinfo.module.context');
   const mbsId = _.get(
     body,
     'build.extra.typeinfo.module.module_build_service_id',
   );
   const mbsIdStr = _.toString(mbsId);
-  const nsvc: string = _.join([name, stream, version, context], ':');
+  const nsvc: string = _.join(
+    [modName, modStream, modVersion, modContext],
+    ':',
+  );
   const searchable: SearchableMbs = {
-    name,
     nsvc,
-    stream,
-    version,
-    context,
-    type: 'redhat-module',
-    mbs_id: mbsIdStr,
+    aType: 'redhat-module',
+    mbsId: mbsIdStr,
+    modName,
+    modStream,
+    modVersion,
+    modContext,
     nvr: _.get(body, 'build.nvr'),
     issuer: _.get(body, 'build.owner_name'),
     scratch: _.get(body, 'build.scratch', false),
     source: _.get(body, 'build.source'),
-    gate_tag_name: _.get(body, 'tag.name'),
-    broker_msg_id_brew_tag: broker_msg_id,
+    gateTag: _.get(body, 'tag.name'),
+    brokerMsgIdGateTag: broker_msg_id,
   };
   return searchable;
 };
@@ -104,8 +107,8 @@ const mkSearchableFromBuildCompleteRedHatContainerImage = (
 ): SearchableContainerImage => {
   const { broker_msg_id, body } = fq_msg;
   const payload: SearchableContainerImage = {
-    type: 'redhat-container-image',
-    task_id: _.get(body, 'info.extra.container_koji_task_id'),
+    aType: 'redhat-container-image',
+    taskId: _.get(body, 'info.extra.container_koji_task_id'),
     /* Should be None for module */
     nvr: _.get(body, 'info.nvr'),
     issuer: _.get(body, 'info.owner_name'),
@@ -117,8 +120,8 @@ const mkSearchableFromBuildCompleteRedHatContainerImage = (
      */
     scratch: false,
     source: _.get(body, 'info.source'),
-    build_id: _.get(body, 'info.build_id'),
-    id: _.get(body, [
+    buildId: _.get(body, 'info.build_id'),
+    contId: _.get(body, [
       'info',
       'extra',
       'image',
@@ -126,9 +129,9 @@ const mkSearchableFromBuildCompleteRedHatContainerImage = (
       'digests',
       'application/vnd.docker.distribution.manifest.list.v2+json',
     ]),
-    full_names: _.get(body, 'info.extra.image.index.pull', []),
-    osbs_subtypes: _.get(body, 'info.extra.osbs_build.subtypes'),
-    broker_msg_id_build_complete: broker_msg_id,
+    contFullNames: _.get(body, 'info.extra.image.index.pull', []),
+    osbsSubtypes: _.get(body, 'info.extra.osbs_build.subtypes'),
+    brokerMsgIdBuildComplete: broker_msg_id,
   };
   return payload;
 };
@@ -158,8 +161,8 @@ const handler_brew_tag = async (
   let artifactId;
   if (isRedHatModule) {
     searchable = mkSearchableRedhatModuleFromBuildTagRedHatModule(fq_msg);
-    artifactType = searchable.type;
-    artifactId = _.toString(searchable.mbs_id);
+    artifactType = searchable.aType;
+    artifactId = _.toString(searchable.mbsId);
     const tag_parse_err = _.attempt(
       Joi.assert,
       gateTagName,
@@ -171,8 +174,8 @@ const handler_brew_tag = async (
     }
   } else {
     searchable = mkSearchableRPMFromBuildTagBrewBuild(fq_msg);
-    artifactType = searchable.type;
-    artifactId = _.toString(searchable.task_id);
+    artifactType = searchable.aType;
+    artifactId = _.toString(searchable.taskId);
     const tag_parse_err = _.attempt(
       Joi.assert,
       gateTagName,
@@ -186,9 +189,9 @@ const handler_brew_tag = async (
   const docId = `${artifactType}-${artifactId}`;
   const indexName: string = getIndexName('redhat', artifactType);
   const doc: Document = {
-    searchable,
+    ...searchable,
     '@timestamp': broker_extra.timestamp,
-    artifact_message: {
+    artToMsgs: {
       name: 'artifact',
     },
   };
@@ -198,7 +201,7 @@ const handler_brew_tag = async (
     docId,
     routing,
     indexName,
-    doc_as_upsert: true,
+    docAsUpsert: true,
   };
   log(' [i] handlerCommon updated doc: %s%o', '\n', update);
   return [update];
@@ -219,8 +222,8 @@ const handler_brew_build_complete = async (
   let artifactId: string;
   if (isRedHatContainerImage) {
     searchable = mkSearchableFromBuildCompleteRedHatContainerImage(fq_msg);
-    artifactType = searchable.type;
-    artifactId = _.toString(searchable.task_id);
+    artifactType = searchable.aType;
+    artifactId = _.toString(searchable.taskId);
   } else {
     const errMsg = `No VirtualTopic.eng.brew.build.complete handeler for build id: ${buildId}`;
     const brokerTopic = 'VirtualTopic.eng.brew.build.complete';
@@ -230,9 +233,9 @@ const handler_brew_build_complete = async (
   const docId = `${artifactType}-${artifactId}`;
   const indexName: string = getIndexName('redhat', artifactType);
   const doc: Document = {
-    searchable,
+    ...searchable,
     '@timestamp': broker_extra.timestamp,
-    artifact_message: {
+    artToMsgs: {
       name: 'artifact',
     },
   };
@@ -242,7 +245,7 @@ const handler_brew_build_complete = async (
     docId,
     routing,
     indexName,
-    doc_as_upsert: true,
+    docAsUpsert: true,
   };
   log(' [i] handlerCommon updated doc: %s%o', '\n', update);
   return [update];
