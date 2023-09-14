@@ -62,29 +62,29 @@ const mkSearchableRPMFromBuildTagKojiBuild = (
   fq_msg: FileQueueMessage,
   buildInfo: any,
 ): SearchableRpm => {
-  const { body, broker_msg_id } = fq_msg;
+  const { body, broker_msg_id: brokerMsgIdGateTag } = fq_msg;
   const buildId = _.get(body, 'build_id');
   const taskId = _.toString(buildInfo.task_id);
-  const gateTagName = _.get(body, 'tag');
-  let artifactType: ArtifactTypes;
+  const gateTag = _.get(body, 'tag');
+  let aType: ArtifactTypes;
   if (artifactContext === 'fedora') {
-    artifactType = 'koji-build';
+    aType = 'koji-build';
   } else if (artifactContext === 'centos') {
-    artifactType = 'koji-build-cs';
+    aType = 'koji-build-cs';
   } else {
     throw new Error(`Unknonwn context ${artifactContext}`);
   }
   const searchable: SearchableRpm = {
     nvr: _.get(buildInfo, 'nvr'),
-    type: artifactType,
+    aType,
     issuer: body.owner,
     source: _.get(buildInfo, 'extra.source.original_url'),
     scratch: false,
-    task_id: taskId,
-    build_id: _.toString(buildId),
+    taskId,
+    gateTag,
+    buildId: _.toString(buildId),
     component: _.get(buildInfo, 'name'),
-    gate_tag_name: gateTagName,
-    broker_msg_id_brew_tag: broker_msg_id,
+    brokerMsgIdGateTag,
   };
 
   return searchable;
@@ -100,10 +100,10 @@ const handler_buildsys_tag = async (
     `Cannot get hub name for artifact context: ${artifactContext}`,
   );
   const { body, broker_extra } = fq_msg;
-  const { build_id } = body;
+  const { buildId } = body;
   let buildInfo;
   try {
-    buildInfo = await koji_query(hubName, 'getBuild', build_id);
+    buildInfo = await koji_query(hubName, 'getBuild', buildId);
   } catch (err) {
     log(
       ' [E] handler_buildsys_tag cannot get buildInfo for build_id: %s',
@@ -117,14 +117,14 @@ const handler_buildsys_tag = async (
     fq_msg,
     buildInfo,
   );
-  const artifactType: ArtifactTypes = searchable.type;
-  const artifactId = _.toString(searchable.task_id);
-  const docId = `${artifactType}-${artifactId}`;
-  const indexName: string = getIndexName(artifactContext, artifactType);
+  const aType: ArtifactTypes = searchable.aType;
+  const aId = _.toString(searchable.taskId);
+  const docId = `${aType}-${aId}`;
+  const indexName: string = getIndexName(artifactContext, aType);
   const doc: Document = {
-    searchable,
+    ...searchable,
     '@timestamp': broker_extra.timestamp,
-    artifact_message: {
+    artToMsgs: {
       name: 'artifact',
     },
   };
@@ -134,7 +134,7 @@ const handler_buildsys_tag = async (
     docId,
     routing,
     indexName,
-    doc_as_upsert: true,
+    docAsUpsert: true,
   };
   log(' [i] handlerCommon updated doc: %s%o', '\n', update);
   return [update];

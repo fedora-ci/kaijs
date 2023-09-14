@@ -45,7 +45,7 @@
  *
  */
 
-import _, { update } from 'lodash';
+import _ from 'lodash';
 import debug from 'debug';
 import {
   Update,
@@ -55,11 +55,12 @@ import {
   SearchableRpm,
   ArtifactContext,
   SearchableTestRpm,
+  SearchableTestMbs,
   SearchableCompose,
   SearchableTestCompose,
   SearchableContainerImage,
   SearchableTestContainerImage,
-  SearchableTestMbs,
+  DocumentBase,
 } from './opensearch';
 import {
   THandler,
@@ -69,9 +70,9 @@ import {
   mkSearchable,
   TGetSearchable,
   makeMessageData,
+  messageToString,
   makeTestCaseName,
   TSearchableHandlersSet,
-  messageToString,
 } from './msg_handlers';
 import { FileQueueMessage } from '../fqueue';
 import { assert_is_valid } from '../validation';
@@ -82,31 +83,35 @@ const log = debug('kaijs:msg_handlers_test');
  * V1 - Schema for messages with version >= 1.0.0
  */
 const mkSearchableRpmTestV1 = (fq_msg: FileQueueMessage): SearchableTestRpm => {
-  const { broker_topic, body, broker_msg_id } = fq_msg;
+  const {
+    body,
+    broker_topic: brokerTopic,
+    broker_msg_id: brokerMsgId,
+  } = fq_msg;
   const { artifact } = body;
-  var thread_id = mkThreadId(fq_msg);
-  var test_state = _.last(_.split(broker_topic, '.')) as string;
-  var test_stage = _.nth(_.split(broker_topic, '.'), -2) as string;
-  let test_case_name;
-  if (isTestStage(broker_topic)) {
-    test_case_name = makeTestCaseName(body);
+  var threadId = mkThreadId(fq_msg);
+  var testState = _.last(_.split(brokerTopic, '.')) as string;
+  var testStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
+  let testCaseName;
+  if (isTestStage(brokerTopic)) {
+    testCaseName = makeTestCaseName(body);
   }
   const searchable: SearchableTestRpm = {
-    task_id: _.toString(_.get(artifact, 'id')),
-    type: _.get(artifact, 'type'),
     nvr: _.get(artifact, 'nvr'),
+    aType: _.get(artifact, 'type'),
+    taskId: _.toString(_.get(artifact, 'id')),
     source: _.get(artifact, 'source'),
     issuer: _.get(artifact, 'issuer'),
     scratch: _.get(artifact, 'scratch'),
+    threadId,
     component: _.get(artifact, 'component'),
-    thread_id,
     /** state: complete, running */
-    test_state,
+    testState,
     /** stage: build, test */
-    test_stage,
-    test_case_name,
-    broker_msg_id,
-    broker_topic,
+    testStage,
+    brokerTopic,
+    brokerMsgId,
+    testCaseName,
   };
   return searchable;
 };
@@ -120,9 +125,9 @@ const mkSearchableRpmTestParentV1 = (
   const { body } = fq_msg;
   const { artifact } = body;
   const searchable: SearchableRpm = {
-    task_id: _.toString(_.get(artifact, 'id')),
     nvr: _.get(artifact, 'nvr'),
-    type: _.get(artifact, 'type'),
+    taskId: _.toString(_.get(artifact, 'id')),
+    aType: _.get(artifact, 'type'),
     source: _.get(artifact, 'source'),
     issuer: _.get(artifact, 'issuer'),
     scratch: _.get(artifact, 'scratch'),
@@ -135,33 +140,37 @@ const mkSearchableRpmTestParentV1 = (
  * https://pagure.io/fedora-ci/messages/blob/master/f/schemas/module-build.yaml
  */
 const mkSearchableMbsTestV1 = (fq_msg: FileQueueMessage): SearchableTestMbs => {
-  const { broker_topic, body, broker_extra, broker_msg_id } = fq_msg;
+  const {
+    body,
+    broker_topic: brokerTopic,
+    broker_msg_id: brokerMsgId,
+  } = fq_msg;
   const { artifact } = body;
-  var thread_id = mkThreadId(fq_msg);
-  var test_state = _.last(_.split(broker_topic, '.')) as string;
-  var test_stage = _.nth(_.split(broker_topic, '.'), -2) as string;
-  let test_case_name;
-  if (isTestStage(broker_topic)) {
-    test_case_name = makeTestCaseName(body);
+  var threadId = mkThreadId(fq_msg);
+  var testState = _.last(_.split(brokerTopic, '.')) as string;
+  var testStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
+  let testCaseName;
+  if (isTestStage(brokerTopic)) {
+    testCaseName = makeTestCaseName(body);
   }
   const searchable: SearchableTestMbs = {
     nvr: _.get(artifact, 'nvr'),
-    type: _.get(artifact, 'type'),
+    aType: _.get(artifact, 'type'),
     nsvc: _.get(artifact, 'nsvc'),
-    name: _.get(artifact, 'name'),
-    mbs_id: _.get(artifact, 'id'),
+    modName: _.get(artifact, 'name'),
+    mbsId: _.get(artifact, 'id'),
     issuer: _.get(artifact, 'issuer'),
-    stream: _.get(artifact, 'stream'),
-    version: _.get(artifact, 'version'),
-    context: _.get(artifact, 'context'),
-    thread_id,
+    modStream: _.get(artifact, 'stream'),
+    modVersion: _.get(artifact, 'version'),
+    modContext: _.get(artifact, 'context'),
+    threadId,
     /** state: complete, running */
-    test_state,
+    testState,
     /** stage: build, test */
-    test_stage,
-    broker_topic,
-    broker_msg_id,
-    test_case_name,
+    testStage,
+    brokerTopic,
+    brokerMsgId,
+    testCaseName,
   };
   return searchable;
 };
@@ -174,13 +183,13 @@ const mkSearchableMbsTestParentV1 = (
   const searchable: SearchableMbs = {
     nvr: _.get(artifact, 'nvr'),
     nsvc: _.get(artifact, 'nsvc'),
-    name: _.get(artifact, 'name'),
-    type: _.get(artifact, 'type'),
-    mbs_id: _.get(artifact, 'id'),
+    mbsId: _.get(artifact, 'id'),
+    aType: _.get(artifact, 'type'),
     issuer: _.get(artifact, 'issuer'),
-    stream: _.get(artifact, 'stream'),
-    version: _.get(artifact, 'version'),
-    context: _.get(artifact, 'context'),
+    modName: _.get(artifact, 'name'),
+    modStream: _.get(artifact, 'stream'),
+    modVersion: _.get(artifact, 'version'),
+    modContext: _.get(artifact, 'context'),
   };
   return searchable;
 };
@@ -191,28 +200,32 @@ const mkSearchableMbsTestParentV1 = (
 const mkSearchableComposeTestV1 = (
   fq_msg: FileQueueMessage,
 ): SearchableTestCompose => {
-  const { broker_topic, body, broker_extra, broker_msg_id } = fq_msg;
+  const {
+    body,
+    broker_topic: brokerTopic,
+    broker_msg_id: brokerMsgId,
+  } = fq_msg;
   const { artifact } = body;
-  var thread_id = mkThreadId(fq_msg);
-  var test_state = _.last(_.split(broker_topic, '.')) as string;
-  var test_stage = _.nth(_.split(broker_topic, '.'), -2) as string;
-  let test_case_name;
-  if (isTestStage(broker_topic)) {
-    test_case_name = makeTestCaseName(body);
+  var threadId = mkThreadId(fq_msg);
+  var testState = _.last(_.split(brokerTopic, '.')) as string;
+  var testStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
+  let testCaseName;
+  if (isTestStage(brokerTopic)) {
+    testCaseName = makeTestCaseName(body);
   }
   const searchable: SearchableTestCompose = {
-    type: _.get(artifact, 'type'),
-    compose_id: _.get(artifact, 'id'),
-    compose_type: _.get(artifact, 'compose_type'),
-    release_type: _.get(artifact, 'release_type'),
-    thread_id,
+    aType: _.get(artifact, 'type'),
+    composeId: _.get(artifact, 'id'),
+    composeType: _.get(artifact, 'compose_type'),
+    composeReleaseType: _.get(artifact, 'release_type'),
+    threadId,
     /** state: complete, running */
-    test_state,
+    testState,
     /** stage: build, test */
-    test_stage,
-    broker_topic,
-    broker_msg_id,
-    test_case_name,
+    testStage,
+    brokerTopic,
+    brokerMsgId,
+    testCaseName,
   };
   return searchable;
 };
@@ -223,10 +236,10 @@ const mkSearchableComposeTestParentV1 = (
   const { body } = fq_msg;
   const { artifact } = body;
   const searchable: SearchableCompose = {
-    type: _.get(artifact, 'type'),
-    compose_id: _.get(artifact, 'id'),
-    compose_type: _.get(artifact, 'compose_type'),
-    release_type: _.get(artifact, 'release_type'),
+    aType: _.get(artifact, 'type'),
+    composeId: _.get(artifact, 'id'),
+    composeType: _.get(artifact, 'compose_type'),
+    composeReleaseType: _.get(artifact, 'release_type'),
   };
   return searchable;
 };
@@ -234,39 +247,43 @@ const mkSearchableComposeTestParentV1 = (
 const mkSearchableContainerImageTestV1 = (
   fq_msg: FileQueueMessage,
 ): SearchableTestContainerImage => {
-  const { broker_topic, body, broker_extra, broker_msg_id } = fq_msg;
+  const {
+    body,
+    broker_topic: brokerTopic,
+    broker_msg_id: brokerMsgId,
+  } = fq_msg;
   const { artifact } = body;
-  var thread_id = mkThreadId(fq_msg);
-  var test_state = _.last(_.split(broker_topic, '.')) as string;
-  var test_stage = _.nth(_.split(broker_topic, '.'), -2) as string;
-  let test_case_name;
-  if (isTestStage(broker_topic)) {
-    test_case_name = makeTestCaseName(body);
+  var threadId = mkThreadId(fq_msg);
+  var testState = _.last(_.split(brokerTopic, '.')) as string;
+  var testStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
+  let testCaseName;
+  if (isTestStage(brokerTopic)) {
+    testCaseName = makeTestCaseName(body);
   }
   const searchable: SearchableTestContainerImage = {
-    id: _.get(artifact, 'id'),
+    contId: _.get(artifact, 'id'),
     nvr: _.get(artifact, 'nvr'),
-    tag: _.get(artifact, 'tag'),
-    type: _.get(artifact, 'type'),
+    contTag: _.get(artifact, 'tag'),
+    aType: _.get(artifact, 'type'),
     /* A digest that uniquely identifies the image within a repository. */
-    name: _.get(artifact, 'name'),
+    contName: _.get(artifact, 'name'),
     source: _.get(artifact, 'source'),
     issuer: _.get(artifact, 'issuer'),
-    task_id: _.get(artifact, 'task_id'),
-    build_id: _.get(artifact, 'build_id'),
+    taskId: _.get(artifact, 'task_id'),
+    buildId: _.get(artifact, 'build_id'),
     scratch: _.get(artifact, 'scratch'),
     component: _.get(artifact, 'component'),
-    namespace: _.get(artifact, 'namespace'),
-    full_names: _.get(artifact, 'full_names'),
-    registry_url: _.get(artifact, 'registry_url'),
-    thread_id,
+    contNamespace: _.get(artifact, 'namespace'),
+    contFullNames: _.get(artifact, 'full_names'),
+    contRegistryUrl: _.get(artifact, 'registry_url'),
+    threadId,
     /** state: complete, running */
-    test_state,
+    testState,
     /** stage: build, test */
-    test_stage,
-    test_case_name,
-    broker_msg_id,
-    broker_topic,
+    testStage,
+    testCaseName,
+    brokerMsgId,
+    brokerTopic,
   };
   return searchable;
 };
@@ -277,21 +294,21 @@ const mkSearchableContainerImageTestParentV1 = (
   const { body } = fq_msg;
   const { artifact } = body;
   const searchable: SearchableContainerImage = {
-    id: _.get(artifact, 'id'),
+    contId: _.get(artifact, 'id'),
     nvr: _.get(artifact, 'nvr'),
-    tag: _.get(artifact, 'tag'),
-    type: _.get(artifact, 'type'),
+    contTag: _.get(artifact, 'tag'),
+    aType: _.get(artifact, 'type'),
     /* A digest that uniquely identifies the image within a repository. */
-    name: _.get(artifact, 'name'),
+    contName: _.get(artifact, 'name'),
     source: _.get(artifact, 'source'),
     issuer: _.get(artifact, 'issuer'),
-    task_id: _.get(artifact, 'task_id'),
-    build_id: _.get(artifact, 'build_id'),
+    taskId: _.get(artifact, 'task_id'),
+    buildId: _.get(artifact, 'build_id'),
     scratch: _.get(artifact, 'scratch'),
     component: _.get(artifact, 'component'),
-    namespace: _.get(artifact, 'namespace'),
-    full_names: _.get(artifact, 'full_names'),
-    registry_url: _.get(artifact, 'registry_url'),
+    contNamespace: _.get(artifact, 'namespace'),
+    contFullNames: _.get(artifact, 'full_names'),
+    contRegistryUrl: _.get(artifact, 'registry_url'),
   };
   return searchable;
 };
@@ -387,24 +404,26 @@ const handlerRpmTest = async (
     fq_msg,
     searchableRpmTestParentHandlers,
   ) as SearchableRpm;
-  const searchable_text = messageToString(body) as string;
+  const msgFullText = messageToString(body) as string;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifactType);
   const messageData = makeMessageData(fq_msg);
   const doc: Document = {
-    searchable,
-    searchable_text,
+    ...searchable,
+    msgFullText,
+    rawData: {
+      message: messageData,
+    },
     '@timestamp': broker_extra.timestamp,
-    message: messageData,
-    artifact_message: {
+    artToMsgs: {
       name: 'message',
       parent: parentDocId,
     },
   };
   const parentDoc: Document = {
-    searchable: searchableParent,
+    ...searchableParent,
     '@timestamp': broker_extra.timestamp,
-    artifact_message: {
+    artToMsgs: {
       name: 'artifact',
     },
   };
@@ -414,7 +433,7 @@ const handlerRpmTest = async (
     docId,
     routing,
     indexName,
-    doc_as_upsert: true,
+    docAsUpsert: true,
   };
   log(' [i] handlerRpmTest updated doc: %s%o', '\n', updateForBrokerMsg);
   const updateForParent: Update = {
@@ -424,7 +443,7 @@ const handlerRpmTest = async (
     upsert: parentDoc,
     routing,
     indexName,
-    doc_as_upsert: false,
+    docAsUpsert: false,
   };
   return [updateForBrokerMsg, updateForParent];
 };
@@ -446,24 +465,26 @@ const handlerMbsTest = async (
     fq_msg,
     searchableMbsTestParentHandlers,
   ) as SearchableMbs;
-  const searchable_text = messageToString(body) as string;
+  const msgFullText = messageToString(body) as string;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifact_type);
   const messageData = makeMessageData(fq_msg);
   const doc: Document = {
-    searchable,
-    searchable_text,
+    ...searchable,
+    msgFullText,
     '@timestamp': broker_extra.timestamp,
-    message: messageData,
-    artifact_message: {
+    rawData: {
+      message: messageData,
+    },
+    artToMsgs: {
       name: 'message',
       parent: parentDocId,
     },
   };
   const parentDoc: Document = {
-    searchable: searchableParent,
+    ...searchableParent,
     '@timestamp': broker_extra.timestamp,
-    artifact_message: {
+    artToMsgs: {
       name: 'artifact',
     },
   };
@@ -473,9 +494,9 @@ const handlerMbsTest = async (
     docId,
     routing,
     indexName,
-    doc_as_upsert: true,
+    docAsUpsert: true,
   };
-  log(' [i] handlerMbsTest updated doc: %s%o', '\n', update);
+  log(' [i] handlerMbsTest updated doc: %s%o', '\n', updateForBrokerMsg);
   const updateForParent: Update = {
     doc: {},
     docId: parentDocId,
@@ -483,7 +504,7 @@ const handlerMbsTest = async (
     upsert: parentDoc,
     routing,
     indexName,
-    doc_as_upsert: false,
+    docAsUpsert: false,
   };
   return [updateForBrokerMsg, updateForParent];
 };
@@ -503,26 +524,28 @@ const handlerComposeTest = async (
     fq_msg,
     searchableComposeTestParentHandlers,
   ) as SearchableMbs;
-  const searchable_text = messageToString(body) as string;
+  const msgFullText = messageToString(body) as string;
   /** used to make parent document ID */
   const docId = broker_msg_id;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifact_type);
   const messageData = makeMessageData(fq_msg);
   const doc: Document = {
-    searchable,
-    searchable_text,
+    ...searchable,
+    msgFullText,
     '@timestamp': broker_extra.timestamp,
-    message: messageData,
-    artifact_message: {
+    rawData: {
+      message: messageData,
+    },
+    artToMsgs: {
       name: 'message',
       parent: parentDocId,
     },
   };
   const parentDoc: Document = {
-    searchable: searchableParent,
+    ...searchableParent,
     '@timestamp': broker_extra.timestamp,
-    artifact_message: {
+    artToMsgs: {
       name: 'artifact',
     },
   };
@@ -532,9 +555,9 @@ const handlerComposeTest = async (
     docId,
     routing,
     indexName,
-    doc_as_upsert: true,
+    docAsUpsert: true,
   };
-  log(' [i] handlerComposeTest updated doc: %s%o', '\n', update);
+  log(' [i] handlerComposeTest updated doc: %s%o', '\n', updateForBrokerMsg);
   const updateForParent: Update = {
     doc: {},
     docId: parentDocId,
@@ -542,7 +565,7 @@ const handlerComposeTest = async (
     upsert: parentDoc,
     routing,
     indexName,
-    doc_as_upsert: false,
+    docAsUpsert: false,
   };
   return [updateForBrokerMsg, updateForParent];
 };
@@ -565,24 +588,26 @@ const handlerContainerImageTest = async (
     fq_msg,
     searchableComposeTestParentHandlers,
   ) as SearchableContainerImage;
-  const searchable_text = messageToString(body) as string;
+  const msgFullText = messageToString(body) as string;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifact_type);
   const messageData = makeMessageData(fq_msg);
   const doc: Document = {
-    searchable,
-    searchable_text,
+    ...searchable,
+    msgFullText,
     '@timestamp': broker_extra.timestamp,
-    message: messageData,
-    artifact_message: {
+    rawData: {
+      message: messageData,
+    },
+    artToMsgs: {
       name: 'message',
       parent: parentDocId,
     },
   };
   const parentDoc: Document = {
-    searchable: searchableParent,
+    ...searchableParent,
     '@timestamp': broker_extra.timestamp,
-    artifact_message: {
+    artToMsgs: {
       name: 'artifact',
     },
   };
@@ -592,9 +617,13 @@ const handlerContainerImageTest = async (
     docId,
     routing,
     indexName,
-    doc_as_upsert: true,
+    docAsUpsert: true,
   };
-  log(' [i] handlerContainerImageTest updated doc: %s%o', '\n', update);
+  log(
+    ' [i] handlerContainerImageTest updated doc: %s%o',
+    '\n',
+    updateForBrokerMsg,
+  );
   const updateForParent: Update = {
     doc: {},
     docId: parentDocId,
@@ -602,7 +631,7 @@ const handlerContainerImageTest = async (
     upsert: parentDoc,
     routing,
     indexName,
-    doc_as_upsert: false,
+    docAsUpsert: false,
   };
   return [updateForBrokerMsg, updateForParent];
 };

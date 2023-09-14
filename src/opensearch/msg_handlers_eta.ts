@@ -51,19 +51,23 @@ import {
 const log = debug('kaijs:msg_handlers_eta');
 
 const mkSearchableEta = (fq_msg: FileQueueMessage): SearchableEtaRpm => {
-  const { broker_topic, broker_msg_id, body } = fq_msg;
+  const {
+    body,
+    broker_topic: brokerTopic,
+    broker_msg_id: brokerMsgId,
+  } = fq_msg;
 
   var searchable: SearchableEtaRpm = {
-    task_id: _.get(body, 'task_id'),
-    type: 'brew-build',
-    broker_msg_id,
-    broker_topic,
-    component: _.get(body, 'package_name'),
     nvr: _.get(body, 'nvr'),
+    aType: 'brew-build',
+    taskId: _.get(body, 'task_id'),
     issuer: _.get(body, 'owner'),
-    ci_run_explanation: _.get(body, 'ci_run_explanation'),
-    ci_run_outcome: _.get(body, 'ci_run_outcome'),
-    ci_run_url: _.get(body, 'ci_run_url'),
+    component: _.get(body, 'package_name'),
+    brokerMsgId,
+    brokerTopic,
+    etaCiRunUrl: _.get(body, 'ci_run_url'),
+    etaCiRunOutcome: _.get(body, 'ci_run_outcome'),
+    etaCiRunExplanation: _.get(body, 'ci_run_explanation'),
   };
 
   return searchable;
@@ -73,9 +77,9 @@ const mkSearchableEtaParent = (fq_msg: FileQueueMessage): SearchableRpm => {
   const { body } = fq_msg;
   var searchable: SearchableRpm = {
     nvr: _.get(body, 'nvr'),
-    type: 'brew-build',
+    aType: 'brew-build',
     issuer: _.get(body, 'owner'),
-    task_id: _.get(body, 'task_id'),
+    taskId: _.get(body, 'task_id'),
     component: _.get(body, 'package_name'),
   };
   return searchable;
@@ -117,24 +121,26 @@ const handlerCommon = async (
     fq_msg,
     searchableEtaParentHandlers,
   ) as SearchableRpm;
-  const searchable_text = messageToString(body) as string;
+  const msgFullText = messageToString(body) as string;
   const parentDocId = mkParentDocId(fq_msg);
   const indexName: string = getIndexName(artifactContext, artifactType);
   const messageData = makeMessageData(fq_msg);
   const doc: Document = {
-    searchable,
-    searchable_text,
+    ...searchable,
+    msgFullText,
     '@timestamp': broker_extra.timestamp,
-    message: messageData,
-    artifact_message: {
+    rawData: {
+      message: messageData,
+    },
+    artToMsgs: {
       name: 'message',
       parent: parentDocId,
     },
   };
   const parentDoc: Document = {
-    searchable: searchableParent,
+    ...searchableParent,
     '@timestamp': broker_extra.timestamp,
-    artifact_message: {
+    artToMsgs: {
       name: 'artifact',
     },
   };
@@ -144,7 +150,7 @@ const handlerCommon = async (
     docId,
     routing,
     indexName,
-    doc_as_upsert: true,
+    docAsUpsert: true,
   };
   const updateForParent: Update = {
     doc: {},
@@ -153,7 +159,7 @@ const handlerCommon = async (
     upsert: parentDoc,
     routing,
     indexName,
-    doc_as_upsert: false,
+    docAsUpsert: false,
   };
   log(' [i] handlerCommon updated doc: %s%o', '\n', upsert);
   return [upsert];
