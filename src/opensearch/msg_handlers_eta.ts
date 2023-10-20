@@ -40,6 +40,7 @@ import {
   SearchableRpm,
   ArtifactContext,
   SearchableEtaRpm,
+  getFqMsgTimestamp,
 } from './opensearch';
 import {
   THandler,
@@ -128,7 +129,7 @@ const handlerCommon = async (
   const doc: Document = {
     ...searchable,
     msgFullText,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     rawData: {
       message: messageData,
     },
@@ -139,7 +140,7 @@ const handlerCommon = async (
   };
   const parentDoc: Document = {
     ...searchableParent,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     artToMsgs: {
       name: 'artifact',
     },
