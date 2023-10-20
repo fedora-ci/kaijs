@@ -36,6 +36,7 @@ import {
   ArtifactTypes,
   SearchableRpm,
   ArtifactContext,
+  getFqMsgTimestamp,
 } from './opensearch';
 
 const log = debug('kaijs:msg_handlers_koji');
@@ -123,7 +124,7 @@ const handler_buildsys_tag = async (
   const indexName: string = getIndexName(artifactContext, aType);
   const doc: Document = {
     ...searchable,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     artToMsgs: {
       name: 'artifact',
     },

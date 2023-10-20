@@ -61,6 +61,7 @@ import {
   SearchableContainerImage,
   SearchableTestContainerImage,
   DocumentBase,
+  getFqMsgTimestamp,
 } from './opensearch';
 import {
   THandler,
@@ -414,7 +415,7 @@ const handlerRpmTest = async (
     rawData: {
       message: messageData,
     },
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     artToMsgs: {
       name: 'message',
       parent: parentDocId,
@@ -422,7 +423,7 @@ const handlerRpmTest = async (
   };
   const parentDoc: Document = {
     ...searchableParent,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     artToMsgs: {
       name: 'artifact',
     },
@@ -472,7 +473,7 @@ const handlerMbsTest = async (
   const doc: Document = {
     ...searchable,
     msgFullText,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     rawData: {
       message: messageData,
     },
@@ -483,7 +484,7 @@ const handlerMbsTest = async (
   };
   const parentDoc: Document = {
     ...searchableParent,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     artToMsgs: {
       name: 'artifact',
     },
@@ -533,7 +534,7 @@ const handlerComposeTest = async (
   const doc: Document = {
     ...searchable,
     msgFullText,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     rawData: {
       message: messageData,
     },
@@ -544,7 +545,7 @@ const handlerComposeTest = async (
   };
   const parentDoc: Document = {
     ...searchableParent,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     artToMsgs: {
       name: 'artifact',
     },
@@ -595,7 +596,7 @@ const handlerContainerImageTest = async (
   const doc: Document = {
     ...searchable,
     msgFullText,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     rawData: {
       message: messageData,
     },
@@ -606,7 +607,7 @@ const handlerContainerImageTest = async (
   };
   const parentDoc: Document = {
     ...searchableParent,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     artToMsgs: {
       name: 'artifact',
     },

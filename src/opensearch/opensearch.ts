@@ -563,3 +563,30 @@ export class OpensearchClient {
     await this.client?.close();
   }
 }
+
+// Returns string in milliseconds since the Unix epoch.
+export const getFqMsgTimestamp = (fq_msg: FileQueueMessage): number => {
+  const { body, broker_extra } = fq_msg;
+  // broker_extra.timestamp -- holds string in milliseconds since the Unix epoch.
+  const prio1 = broker_extra.timestamp;
+  if (_.isString(prio1) && !_.isEmpty(prio1)) {
+    const milliseconds = _.toNumber(prio1);
+    if (!_.isNaN(milliseconds)) {
+      return milliseconds;
+    }
+  }
+  // https://pagure.io/fedora-ci/messages/blob/master/f/schemas/common.yaml#_8
+  // is ISO 8601 format string
+  const prio2 = _.get(body, 'generated_at');
+  if (_.isString(prio2) && !_.isEmpty(prio2)) {
+    const msgDate = new Date(prio2);
+    const milliseconds = msgDate.getTime();
+    if (!_.isNaN(milliseconds)) {
+      return milliseconds;
+    }
+  }
+  // return current time
+  let currentDate = new Date();
+  const milliseconds = currentDate.getTime();
+  return milliseconds;
+};

@@ -35,6 +35,7 @@ import {
   SearchableRpm,
   SearchableMbs,
   SearchableContainerImage,
+  getFqMsgTimestamp,
 } from './opensearch';
 import { ArtifactTypes } from '../db_interface';
 
@@ -190,7 +191,7 @@ const handler_brew_tag = async (
   const indexName: string = getIndexName('redhat', artifactType);
   const doc: Document = {
     ...searchable,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     artToMsgs: {
       name: 'artifact',
     },
@@ -234,7 +235,7 @@ const handler_brew_build_complete = async (
   const indexName: string = getIndexName('redhat', artifactType);
   const doc: Document = {
     ...searchable,
-    '@timestamp': broker_extra.timestamp,
+    '@timestamp': getFqMsgTimestamp(fq_msg),
     artToMsgs: {
       name: 'artifact',
     },
