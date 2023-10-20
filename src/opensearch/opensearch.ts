@@ -236,7 +236,7 @@ interface SearchableTest {
    * * pull-request.test.error -> test
    * * brew-build.promote.error -> promote
    **/
-  testStage: string;
+  msgStage: string;
   /**
    * state is always the latest part of the message
    * Examples:
@@ -244,7 +244,7 @@ interface SearchableTest {
    *  * brew-build.promote.error -> error
    *  * brew-build.test.complete -> complete
    */
-  testState: string;
+  msgState: string;
   /** Broker message id */
   brokerMsgId: string;
   /** Broker topic */
