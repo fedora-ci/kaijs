@@ -90,8 +90,8 @@ const mkSearchableRpmTestV1 = (fq_msg: FileQueueMessage): SearchableTestRpm => {
   } = fq_msg;
   const { artifact } = body;
   var threadId = mkThreadId(fq_msg);
-  var testState = _.last(_.split(brokerTopic, '.')) as string;
-  var testStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
+  var msgState = _.last(_.split(brokerTopic, '.')) as string;
+  var msgStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
   let testCaseName;
   if (isTestStage(brokerTopic)) {
     testCaseName = makeTestCaseName(body);
@@ -106,9 +106,9 @@ const mkSearchableRpmTestV1 = (fq_msg: FileQueueMessage): SearchableTestRpm => {
     threadId,
     component: _.get(artifact, 'component'),
     /** state: complete, running */
-    testState,
+    msgState,
     /** stage: build, test */
-    testStage,
+    msgStage,
     brokerTopic,
     brokerMsgId,
     testCaseName,
@@ -147,8 +147,8 @@ const mkSearchableMbsTestV1 = (fq_msg: FileQueueMessage): SearchableTestMbs => {
   } = fq_msg;
   const { artifact } = body;
   var threadId = mkThreadId(fq_msg);
-  var testState = _.last(_.split(brokerTopic, '.')) as string;
-  var testStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
+  var msgState = _.last(_.split(brokerTopic, '.')) as string;
+  var msgStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
   let testCaseName;
   if (isTestStage(brokerTopic)) {
     testCaseName = makeTestCaseName(body);
@@ -165,9 +165,9 @@ const mkSearchableMbsTestV1 = (fq_msg: FileQueueMessage): SearchableTestMbs => {
     modContext: _.get(artifact, 'context'),
     threadId,
     /** state: complete, running */
-    testState,
+    msgState,
     /** stage: build, test */
-    testStage,
+    msgStage,
     brokerTopic,
     brokerMsgId,
     testCaseName,
@@ -207,8 +207,8 @@ const mkSearchableComposeTestV1 = (
   } = fq_msg;
   const { artifact } = body;
   var threadId = mkThreadId(fq_msg);
-  var testState = _.last(_.split(brokerTopic, '.')) as string;
-  var testStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
+  var msgState = _.last(_.split(brokerTopic, '.')) as string;
+  var msgStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
   let testCaseName;
   if (isTestStage(brokerTopic)) {
     testCaseName = makeTestCaseName(body);
@@ -220,9 +220,9 @@ const mkSearchableComposeTestV1 = (
     composeReleaseType: _.get(artifact, 'release_type'),
     threadId,
     /** state: complete, running */
-    testState,
+    msgState,
     /** stage: build, test */
-    testStage,
+    msgStage,
     brokerTopic,
     brokerMsgId,
     testCaseName,
@@ -254,8 +254,8 @@ const mkSearchableContainerImageTestV1 = (
   } = fq_msg;
   const { artifact } = body;
   var threadId = mkThreadId(fq_msg);
-  var testState = _.last(_.split(brokerTopic, '.')) as string;
-  var testStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
+  var msgState = _.last(_.split(brokerTopic, '.')) as string;
+  var msgStage = _.nth(_.split(brokerTopic, '.'), -2) as string;
   let testCaseName;
   if (isTestStage(brokerTopic)) {
     testCaseName = makeTestCaseName(body);
@@ -278,9 +278,9 @@ const mkSearchableContainerImageTestV1 = (
     contRegistryUrl: _.get(artifact, 'registry_url'),
     threadId,
     /** state: complete, running */
-    testState,
+    msgState,
     /** stage: build, test */
-    testStage,
+    msgStage,
     testCaseName,
     brokerMsgId,
     brokerTopic,
