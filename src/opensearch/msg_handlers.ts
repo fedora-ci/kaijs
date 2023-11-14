@@ -263,7 +263,7 @@ export const messageToString = (obj: any): string | undefined => {
   if (_.isObject(obj)) {
     const objectProperties = _.map(
       obj,
-      (value, key) => `${escapeString(key)} ${messageToString(value)}`,
+      (value, _key) => `${messageToString(value)}`,
     );
     return objectProperties.join(' ');
   }
