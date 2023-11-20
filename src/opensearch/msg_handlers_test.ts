@@ -289,27 +289,29 @@ const mkSearchableContainerImageTestV1 = (
   return searchable;
 };
 
+// https://pagure.io/fedora-ci/messages/blob/master/f/schemas/redhat-container-image.yaml
+
 const mkSearchableContainerImageTestParentV1 = (
   fq_msg: FileQueueMessage,
 ): SearchableContainerImage => {
   const { body } = fq_msg;
   const { artifact } = body;
   const searchable: SearchableContainerImage = {
-    contId: _.get(artifact, 'id'),
-    nvr: _.get(artifact, 'nvr'),
-    contTag: _.get(artifact, 'tag'),
     aType: _.get(artifact, 'type'),
-    /* A digest that uniquely identifies the image within a repository. */
-    contName: _.get(artifact, 'name'),
-    source: _.get(artifact, 'source'),
-    issuer: _.get(artifact, 'issuer'),
     taskId: _.get(artifact, 'task_id'),
     buildId: _.get(artifact, 'build_id'),
-    scratch: _.get(artifact, 'scratch'),
     component: _.get(artifact, 'component'),
+    contName: _.get(artifact, 'name'),
     contNamespace: _.get(artifact, 'namespace'),
     contFullNames: _.get(artifact, 'full_names'),
     contRegistryUrl: _.get(artifact, 'registry_url'),
+    contTag: _.get(artifact, 'tag'),
+    contId: _.get(artifact, 'id'),
+    issuer: _.get(artifact, 'issuer'),
+    scratch: _.get(artifact, 'scratch'),
+    nvr: _.get(artifact, 'nvr'),
+    /* A digest that uniquely identifies the image within a repository. */
+    source: _.get(artifact, 'source'),
   };
   return searchable;
 };
@@ -587,7 +589,7 @@ const handlerContainerImageTest = async (
   ) as SearchableTestContainerImage;
   const searchableParent = mkSearchable(
     fq_msg,
-    searchableComposeTestParentHandlers,
+    searchableContainerImageTestParentHandlers,
   ) as SearchableContainerImage;
   const msgFullText = messageToString(body) as string;
   const parentDocId = mkParentDocId(fq_msg);
