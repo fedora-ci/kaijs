@@ -54,11 +54,11 @@ const log = debug('kaijs:msg_handlers_koji');
 const handler_buildsys_tag = async (
   type: ArtifactTypes,
   artifacts: Artifacts,
-  fq_msg: FileQueueMessage
+  fq_msg: FileQueueMessage,
 ): Promise<ArtifactModel> => {
   assert.ok(
     _.has(atype_to_hub_map, type),
-    `handler_buildsys_tag() was called for unknown artifact type: ${type}`
+    `handler_buildsys_tag() was called for unknown artifact type: ${type}`,
   );
   const hub_name = _.get(atype_to_hub_map, type) as KojiHubName;
   if (!_.has(koji_clients, hub_name)) {
@@ -73,7 +73,7 @@ const handler_buildsys_tag = async (
   } catch (err) {
     log(
       ' [E] handler_buildsys_tag cannot get buildInfo for build_id: %s',
-      body.build_id
+      body.build_id,
     );
     throw err;
   }
@@ -114,10 +114,10 @@ export const handlers: THandlersSet = new Map<RegExp, THandler>();
 
 handlers.set(
   /^org.centos.prod.buildsys.tag$/,
-  _.partial(handler_buildsys_tag, 'koji-build-cs')
+  _.partial(handler_buildsys_tag, 'koji-build-cs'),
 );
 
 handlers.set(
   /^org.fedoraproject.prod.buildsys.tag$/,
-  _.partial(handler_buildsys_tag, 'koji-build')
+  _.partial(handler_buildsys_tag, 'koji-build'),
 );

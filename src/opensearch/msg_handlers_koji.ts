@@ -101,7 +101,7 @@ const handler_buildsys_tag = async (
     `Cannot get hub name for artifact context: ${artifactContext}`,
   );
   const { body, broker_extra } = fq_msg;
-  const { buildId } = body;
+  const buildId = _.get(body, 'build_id');
   let buildInfo;
   try {
     buildInfo = await koji_query(hubName, 'getBuild', buildId);
