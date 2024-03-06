@@ -82,6 +82,11 @@ const mkSearchableRedhatModuleFromBuildTagRedHatModule = (
     [modName, modStream, modVersion, modContext],
     ':',
   );
+  if (_.endsWith(modName, '-devel')) {
+    const errMsg = `Ignore VirtualTopic.eng.brew.build.tag handeler for -devel module with Id: ${mbsId}`;
+    const brokerTopic = 'VirtualTopic.eng.brew.build.tag';
+    throw new NoNeedToProcessError(errMsg, brokerTopic);
+  }
   const searchable: SearchableMbs = {
     nsvc,
     aType: 'redhat-module',
