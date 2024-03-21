@@ -164,7 +164,7 @@ const schema_brew_build_complete = Joi.object({
  * ^(supp-)?rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|.+-stack)?-gate$
  */
 const schema_brew_build_tag_is_gate_tag_brew_build = Joi.string().pattern(
-  /^(supp-)?rhel-([89]|10|11|12)\.\d+\.\d+(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|.+-stack)?-gate$/,
+  /^(supp-)?rhel-(8|9|10|11|12)\.\d+(\.\d+)?(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|.+-stack)?-gate$/,
 );
 
 /**
@@ -172,7 +172,7 @@ const schema_brew_build_tag_is_gate_tag_brew_build = Joi.string().pattern(
  */
 const schema_brew_build_tag_is_gate_tag_redhat_module_build =
   Joi.string().pattern(
-    /^(advanced-virt-[\w\.]+-)?(rhel-([89]|10|11|12)\.\d+\.\d+(-alpha)?(-beta)?(-z)?-modules-gate)$/,
+    /^(advanced-virt-[\w\.]+-)?(rhel-(8|9|10|11|12)\.\d+(\.\d+)?(-alpha)?(-beta)?(-z)?-modules-gate)$/,
   );
 
 export const schemaError = Joi.string().error(
