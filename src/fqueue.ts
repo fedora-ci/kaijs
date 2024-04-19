@@ -52,9 +52,9 @@ export interface FileQueueMessage {
   /** Timestamp from message header */
   header_timestamp?: number;
   /** Payload of message */
-  body: any;
+  body: { [key: string]: any };
   /** Message headers */
-  broker_extra?: any;
+  broker_extra: { [key: string]: any };
 }
 
 async function make(path: string, opts = { poll: false, optimizeList: false }) {

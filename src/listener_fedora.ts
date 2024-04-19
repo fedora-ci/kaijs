@@ -112,7 +112,7 @@ const process_msg = (
     broker_extra: { ...headers },
   };
   /** 'sent-at': '2021-07-30T13:10:14+00:00' */
-  let provider_timestamp = Math.floor(Date.parse(headers['sent-at']) / 1000);
+  let provider_timestamp = Math.floor(Date.parse(headers!['sent-at']) / 1000);
   if (!_.isNaN(provider_timestamp)) {
     payload_obj.header_timestamp = provider_timestamp;
   }

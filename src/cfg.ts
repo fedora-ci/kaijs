@@ -25,6 +25,7 @@ import debug from 'debug';
 import yaml from 'js-yaml';
 import assert from 'assert';
 import { ConnectionOptions } from 'rhea-promise';
+import { ClientOptions } from '@opensearch-project/opensearch/.';
 
 const log = debug('kaijs:cfg');
 /** Default config must present */
@@ -164,7 +165,7 @@ class Config {
     /**
      * Uncomment to print whole active config
      */
-    // log('Active config: %s', '\n' + yaml.dump(this.config_active));
+    log('Active config: %s', '\n' + yaml.dump(this.config_active));
     /** constructor in javascript returns this object automatically
      * constructor returns the type of the class, the constructor implicitly returns 'this'
      * Even though you technically can't extend a proxy, there is a way to force a class
@@ -229,6 +230,10 @@ export interface Cfg {
           indexes: [{ keys: any; options: any }];
         };
       };
+    };
+    opensearch: {
+      client: ClientOptions;
+      indexes_prefix: string;
     };
     schemas_git_upstream: string;
     schemas_local_git_repo_path: string;

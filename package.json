@@ -10,7 +10,9 @@
     "dev:listener-fedora": "nodemon --config dev-listener-fedora.json",
     "start:listener-fedora": "source ./env.sh && node build/listener_fedora.js | ./node_modules/.bin/pino-pretty",
     "dev:loader": "nodemon --config dev-loader.json",
+    "dev:loader-opensearch": "nodemon --config dev-loader-opensearch.json",
     "start:loader": "source ./env.sh && node build/loader.js | ./node_modules/.bin/pino-pretty",
+    "start:loader-opensearch": "source ./env.sh && node build/loader_opensearch.js | ./node_modules/.bin/pino-pretty",
     "build": "rimraf ./build && tsc"
   },
   "author": "Andrei Stepanov",
@@ -20,6 +22,7 @@
     "@types/debug": "^4.1.8",
     "@types/lodash": "^4.14.195",
     "@types/uuid": "^9.0.2",
+    "@opensearch-project/opensearch": "^2.2.0",
     "ajv": "^8.11.0",
     "ajv-formats": "^2.1.1",
     "amqplib": "^0.10.3",
