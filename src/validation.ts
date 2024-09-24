@@ -218,7 +218,7 @@ const schemas_koji = {
   koji_build_info: schema_koji_build_info,
 };
 
-const schema_valid_artifat_issuer = Joi.object({
+const schema_valid_artifact_issuer = Joi.object({
   /*
    * https://issues.redhat.com/browse/CVP-287
    * https://issues.redhat.com/browse/CPAAS-3355
@@ -229,7 +229,7 @@ const schema_valid_artifat_issuer = Joi.object({
 });
 
 const schemas_other = {
-  valid_artifact_issuer: schema_valid_artifat_issuer,
+  valid_artifact_issuer: schema_valid_artifact_issuer,
 };
 
 export const schemas: SchemasAllType = _.merge(
