@@ -19,7 +19,7 @@
 # * start:loader
 # http://pkgs.devel.redhat.com/cgit/containers/nodejs-14/tree/Dockerfile?h=rhel-8.5.0#n15
 
-FROM registry.access.redhat.com/ubi8/nodejs-14
+FROM registry.access.redhat.com/ubi8/nodejs-18
 USER root
 ARG ADDPKGS
 RUN yum install -y krb5-workstation $ADDPKGS && \
