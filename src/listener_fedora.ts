@@ -139,7 +139,7 @@ const queue_status = async (
   );
 };
 
-async function connect(): Promise<amqp.Connection> {
+async function connect(): Promise<amqp.ChannelModel> {
   try {
     log(`Connecting to: ${broker_cfg.url}`);
     var conn = await amqp.connect(broker_cfg.url, socketOptions);
@@ -153,7 +153,7 @@ async function connect(): Promise<amqp.Connection> {
 }
 
 async function handle_signal(
-  con: amqp.Connection,
+  con: amqp.ChannelModel,
   signal: NodeJS.Signals,
 ): Promise<void> {
   /* Will immediately invalidate any unresolved operations, so it’s best to make sure you’ve
