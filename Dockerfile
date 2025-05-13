@@ -31,6 +31,11 @@ COPY src $HOME/src/
 COPY assets $HOME/assets/
 COPY package.json package-lock.json env.sh tsconfig.json $HOME/
 COPY .npmrcs/$NPMLOCATION .npmrc
+# Allow user to use the lockfiles etc
+USER root
+RUN chown -R 1001:0 $HOME
+
+USER 1001
 ARG NPMLOCATION="open"
 RUN ["bash","-c", "--", "npm install"]
 RUN ["bash","-c", "--", "npm run build"]
