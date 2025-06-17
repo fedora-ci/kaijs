@@ -164,7 +164,7 @@ const schema_brew_build_complete = Joi.object({
  * ^(supp-)?rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|.+-stack)?-gate$
  */
 const schema_brew_build_tag_is_gate_tag_brew_build = Joi.string().pattern(
-  /^(ext-|supp-)?rhel-(8|9|10|11|12)\.\d+(\.\d+)?(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|-flatpak-app|.+-stack)?-gate$/,
+  /^(ext-|supp-)?rhel-(8|9|10|11|12)\.\d+(\.\d+)?(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|-flatpak-app|-scap-security-guide|.+-stack)?-gate$/,
 );
 
 /**
