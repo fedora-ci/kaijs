@@ -24,8 +24,8 @@ USER root
 ARG ADDPKGS
 RUN yum install -y krb5-workstation $ADDPKGS && \
     yum clean all -y
-COPY rhcachain.crt "$HOME/"
-RUN trust anchor --store "${HOME}/rhcachain.crt"
+COPY rhca.crt "$HOME/"
+RUN trust anchor --store "${HOME}/rhca.crt"
 USER 1001
 COPY src $HOME/src/
 COPY assets $HOME/assets/
