@@ -258,6 +258,53 @@ const handler_brew_build_complete = async (
 };
 
 /**
+ * At this moment message is already validated with: schema_brew_build_promote
+ *
+ * Brew promotes a draft build: build id and task id stay the same, NVR changes.
+ * Update the parent doc created by brew.build.tag; builds without a parent doc are ignored.
+ */
+const handler_brew_build_promote = async (
+  fq_msg: FileQueueMessage,
+): Promise<Update[]> => {
+  const { body } = fq_msg;
+  const brokerTopic = 'VirtualTopic.eng.brew.build.promote';
+  const buildId = _.get(body, 'build.build_id');
+  const isModule = _.has(body, 'build.extra.typeinfo.module');
+  const isContainer =
+    _.get(body, 'build.extra.osbs_build.kind') === 'container_build' ||
+    _.has(body, 'build.extra.container_koji_task_id');
+  if (isModule || isContainer) {
+    const errMsg = `No ${brokerTopic} handler for module or container build id: ${buildId}`;
+    throw new NoNeedToProcessError(errMsg, brokerTopic);
+  }
+  const nvr: string = _.get(body, 'build.nvr');
+  const draftRelease: string = _.get(body, 'draft_release');
+  const targetRelease: string = _.get(body, 'target_release');
+  /** NVR is `<name>-<version>-<release>`: swap the target release for the draft one. */
+  const suffix = `-${targetRelease}`;
+  if (!_.endsWith(nvr, suffix)) {
+    const errMsg = `Promoted NVR ${nvr} does not end with target release ${targetRelease}`;
+    throw new NoNeedToProcessError(errMsg, brokerTopic);
+  }
+  const nvrDraft = `${nvr.slice(0, -suffix.length)}-${draftRelease}`;
+  const docId = `brew-build-${_.get(body, 'build.task_id')}`;
+  const update: Update = {
+    doc: {
+      nvr,
+      nvrDraft,
+      '@timestamp': getFqMsgTimestamp(fq_msg),
+    },
+    docId,
+    routing: docId,
+    indexName: getIndexName('redhat', 'brew-build'),
+    docAsUpsert: false,
+    ignoreMissing: true,
+  };
+  log(' [i] handler_brew_build_promote updated doc: %s%o', '\n', update);
+  return [update];
+};
+
+/**
  * Declare set() from most specialized to most global regexes
  */
 export const handlers: THandlersSet = new Map<RegExp, THandler>();
@@ -273,4 +320,12 @@ handlers.set(/^VirtualTopic\.eng\.brew\.build\.tag$/, handler_brew_tag);
 handlers.set(
   /^VirtualTopic\.eng\.brew\.build\.complete$/,
   handler_brew_build_complete,
+);
+
+/**
+ * Kafka topic eng.brew.build.promote
+ */
+handlers.set(
+  /^VirtualTopic\.eng\.brew\.build\.promote$/,
+  handler_brew_build_promote,
 );

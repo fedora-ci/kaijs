@@ -97,6 +97,8 @@ export interface Update {
   routing?: string;
   indexName: string;
   docAsUpsert: boolean;
+  /** Do not fail the bulk when the document to update does not exist. */
+  ignoreMissing?: boolean;
 }
 
 export type TSearchable =
@@ -548,9 +550,29 @@ export class OpensearchClient {
       ]);
       const { body: response } = await this.client.bulk({ body });
       if (response.errors !== false) {
-        /** Use printify() to get errors meaning. */
-        log(' [E] Result of bulk action: %O', printify(response));
-        throw new Error('Error in bulk operation.');
+        /**
+         * Items are returned in the same order as the actions in the request.
+         * Updates flagged with ignoreMissing may fail on a missing document, that is not an error.
+         */
+        const realErrors = _.filter(response.items, (item, idx) => {
+          const result = item.update;
+          if (!result?.error) {
+            return false;
+          }
+          const isMissing =
+            result.status === 404 ||
+            result.error.type === 'document_missing_exception';
+          if (updates[idx]?.ignoreMissing && isMissing) {
+            log(' [D] Skipped update of missing doc: %s', result._id);
+            return false;
+          }
+          return true;
+        });
+        if (realErrors.length > 0) {
+          /** Use printify() to get errors meaning. */
+          log(' [E] Result of bulk action: %O', printify(response));
+          throw new Error('Error in bulk operation.');
+        }
       }
       log(' [I] bulk operation is successfull.');
     } catch (err) {
