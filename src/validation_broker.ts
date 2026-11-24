@@ -161,6 +161,21 @@ const schema_brew_build_complete = Joi.object({
 });
 
 /**
+ * VirtualTopic.eng.brew.build.promote
+ * Brew promotes a draft build: same build id, NVR changes from `...,draft_<id>` to the target release.
+ */
+const schema_brew_build_promote = Joi.object({
+  build: Joi.object({
+    build_id: Joi.number().integer().required(),
+    task_id: Joi.number().integer().required(),
+    nvr: Joi.string().required(),
+    package_name: Joi.string().required(),
+  }).unknown(true),
+  draft_release: Joi.string().required(),
+  target_release: Joi.string().required(),
+});
+
+/**
  * ^(supp-)?rhel-[89]\.\d+\.\d+(-alpha)?(-beta)?(-z)?(-llvm-toolset|-go-toolset|-rust-toolset|.+-stack)?-gate$
  */
 const schema_brew_build_tag_is_gate_tag_brew_build = Joi.string().pattern(
@@ -325,6 +340,11 @@ const schemas_umb_broker_messages = {
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.brew.build.tag&delta=127800
    */
   'VirtualTopic.eng.brew.build.complete': schema_brew_build_complete,
+
+  /**
+   * Kafka topic eng.brew.build.promote
+   */
+  'VirtualTopic.eng.brew.build.promote': schema_brew_build_promote,
 
   /*
    * https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-module.test.complete&delta=127800
